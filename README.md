@@ -40,6 +40,9 @@ yapl_s/
 ├── docs/             # Documentation files
 │   ├── yapl-s.pdf    # YAPL-S language specification
 │   └── y_man.pdf     # Yacc/Bison manual reference
+├── yapl/             # Original YAPL language reference
+│   ├── yapl.y        # Original YAPL grammar
+│   └── yapl.l        # Original YAPL lexer
 └── tests/
     ├── positive/     # Valid YAPL-S programs (6 test cases)
     ├── negative/     # Invalid programs for error handling (4 test cases)
