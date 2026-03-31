@@ -84,6 +84,8 @@ int peek_state() {
     return char_val; \
 } while(0)
 
+#define YY_DECL int real_yylex(void)
+
 %}
 
 %x FSTRING

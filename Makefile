@@ -9,7 +9,7 @@ lex.yy.c: yapl_s.l y.tab.h
 	lex yapl_s.l
 
 clean:
-	@rm -f lex.yy.c y.tab.h y.tab.c yapl_s
+	@rm -f lex.yy.c y.tab.h y.tab.c yapl_s derivation_tree.dot
 
 test: yapl_s
 	@echo "Running all tests"
@@ -22,6 +22,10 @@ test: yapl_s
 					test_id=$${base#test}; \
 					echo "  Running $$dir/test$$test_id.c"; \
 					./yapl_s $$test_file > $$dir/output$$test_id.txt; \
+					if [ -f derivation_tree.dot ]; then \
+						dot -Tsvg derivation_tree.dot -o $$dir/tree$$test_id.svg; \
+						rm -f derivation_tree.dot; \
+					fi; \
 				fi; \
 			done; \
 		fi; \

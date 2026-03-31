@@ -32,6 +32,37 @@ void record_reduction(const char* rule) {
 #else
     #define TRACE_REDUCE(rule)
 #endif
+
+#define MAX_LEXEMES 10000
+char* lexeme_list[MAX_LEXEMES];
+int lexeme_count = 0;
+
+char* sanitize_for_dot(const char* str) {
+    char* san = malloc(strlen(str) * 2 + 1);
+    int j = 0;
+    for (int i = 0; str[i]; i++) {
+        if (str[i] == '"' || str[i] == '\\') {
+            san[j++] = '\\';
+        }
+        if (str[i] != '\n' && str[i] != '\r') {
+            san[j++] = str[i];
+        }
+    }
+    san[j] = '\0';
+    return san;
+}
+
+int real_yylex(void);
+
+int yylex(void) {
+    int tok = real_yylex();
+    if (tok > 0 && yytext != NULL) {
+        lexeme_list[lexeme_count++] = sanitize_for_dot(yytext);
+    }
+    return tok;
+}
+
+
 %}
 
 %token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL FUNC_NAME SIZEOF
@@ -88,11 +119,9 @@ f_string_expression
     ;
 
 f_string_body
-    : /* empty */ { TRACE_REDUCE("f_string_body -> /* empty */"); }
+    : /* empty */ { TRACE_REDUCE("f_string_body -> epsilon"); }
     | f_string_body STRING_LITERAL_PART { TRACE_REDUCE("f_string_body -> f_string_body STRING_LITERAL_PART"); }
-
     | f_string_body interpolation_block { TRACE_REDUCE("f_string_body -> f_string_body interpolation_block"); }
-
     ;
 
 interpolation_block
@@ -626,26 +655,67 @@ void yyerror(const char *s)
 }
 
 typedef struct TreeNode {
+    int id;
     char name[128];
     struct TreeNode* children[20];
     int num_children;
 } TreeNode;
 
-void print_tree(TreeNode* node, char* prefix, int is_last) {
-    if (!node) return;
-    printf("%s", prefix);
-    printf(is_last ? "\\-- " : "|-- ");
-    printf("%s\n", node->name);
+int global_node_counter = 0;
 
-    char new_prefix[512];
-    strcpy(new_prefix, prefix);
-    strcat(new_prefix, is_last ? "    " : "|   ");
+void export_tree_to_dot(TreeNode* node, FILE* fp) {
+    if (!node) return;
+    
+    if (node->num_children > 0) {
+        fprintf(fp, "    node_%d [label=\"%s\", shape=box, style=filled, fillcolor=lightblue];\n", node->id, node->name);
+    } else {
+        fprintf(fp, "    node_%d [label=\"%s\", shape=ellipse, style=filled, fillcolor=lightgrey];\n", node->id, node->name);
+    }
 
     for (int i = 0; i < node->num_children; i++) {
-        print_tree(node->children[i], new_prefix, i == node->num_children - 1);
+        fprintf(fp, "    node_%d -> node_%d;\n", node->id, node->children[i]->id);
+        export_tree_to_dot(node->children[i], fp);
     }
 }
 
+
+void export_leaves_to_dot(TreeNode* node, FILE* fp, int* last_leaf_id) {
+    if (!node) return;
+    
+    if (node->num_children == 0) {
+        // Output the node for the rank=same block
+        fprintf(fp, "        node_%d;\n", node->id);
+        
+        if (*last_leaf_id != -1) {
+            fprintf(fp, "        node_%d -> node_%d [style=invis];\n", *last_leaf_id, node->id);
+        }
+        *last_leaf_id = node->id;
+    } 
+    else {
+        for (int i = 0; i < node->num_children; i++) {
+            export_leaves_to_dot(node->children[i], fp, last_leaf_id);
+        }
+    }
+}
+
+int current_lexeme_idx = 0;
+
+void attach_lexemes_to_leaves(TreeNode* node) {
+    if (!node) return;
+
+    if (node->num_children == 0) {
+        if (strcmp(node->name, "epsilon") != 0 && current_lexeme_idx < lexeme_count) {
+            char new_label[256];
+            snprintf(new_label, sizeof(new_label), "%s\\n%s", node->name, lexeme_list[current_lexeme_idx]);
+            strcpy(node->name, new_label);
+            current_lexeme_idx++;
+        }
+    } else {
+        for (int i = 0; i < node->num_children; i++) {
+            attach_lexemes_to_leaves(node->children[i]);
+        }
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -679,12 +749,8 @@ int main(int argc, char **argv)
 			int parse_result = yyparse();
 
             if (parse_result == 0) {
-                printf("\n======================================================\n");
-                printf("              HIERARCHICAL PARSE TREE                 \n");
-                printf("======================================================\n");
-                
                 TreeNode* root = NULL;
-                TreeNode* stack[10000];
+                TreeNode* stack[10000]; 
                 int top = -1;
 
                 for (int i = step_count - 1; i >= 0; i--) {
@@ -700,12 +766,31 @@ int main(int argc, char **argv)
                     TreeNode* parent = NULL;
                     if (root == NULL) {
                         root = malloc(sizeof(TreeNode));
+                        root->id = global_node_counter++;
                         strcpy(root->name, lhs_str);
                         root->num_children = 0;
                         parent = root;
                     } else {
-                        if (top >= 0) {
-                            parent = stack[top--];
+                        int match_idx = -1;
+                        for (int k = top; k >= 0; k--) {
+                            if (strcmp(stack[k]->name, lhs_str) == 0) {
+                                match_idx = k;
+                                break;
+                            }
+                        }
+                        
+                        if (match_idx != -1) {
+                            parent = stack[match_idx];
+                            // Remove from stack by shifting down
+                            for (int k = match_idx; k < top; k++) {
+                                stack[k] = stack[k+1];
+                            }
+                            top--;
+                        } else {
+                            parent = malloc(sizeof(TreeNode));
+                            parent->id = global_node_counter++;
+                            strcpy(parent->name, lhs_str);
+                            parent->num_children = 0;
                         }
                     }
 
@@ -723,6 +808,7 @@ int main(int argc, char **argv)
                         }
 
                         TreeNode* child = malloc(sizeof(TreeNode));
+                        child->id = global_node_counter++;
                         strcpy(child->name, rhs_str);
                         child->num_children = 0;
                         temp_children[rhs_count++] = child;
@@ -731,6 +817,7 @@ int main(int argc, char **argv)
 
                     if (rhs_count == 0) {
                         TreeNode* child = malloc(sizeof(TreeNode));
+                        child->id = global_node_counter++;
                         strcpy(child->name, "epsilon");
                         child->num_children = 0;
                         parent->children[parent->num_children++] = child;
@@ -738,7 +825,6 @@ int main(int argc, char **argv)
 
                     for (int j = 0; j < rhs_count; j++) {
                         char first_char = temp_children[j]->name[0];
-                        // In Yacc, non-terminals are lowercase or start with underscore
                         if (islower(first_char) || first_char == '_') {
                             stack[++top] = temp_children[j];
                         }
@@ -746,10 +832,29 @@ int main(int argc, char **argv)
                     free(derivation_tree[i]);
                 }
 
-                print_tree(root, "", 1);
-                
-                printf("======================================================\n");
-                printf("Parsing Completed Successfully.\n\n");
+				current_lexeme_idx = 0;
+                attach_lexemes_to_leaves(root);
+
+                FILE* dot_file = fopen("derivation_tree.dot", "w");
+                if (dot_file) {
+                    fprintf(dot_file, "digraph DerivationTree {\n");
+                    fprintf(dot_file, "    ordering=\"out\";\n"); 
+                    fprintf(dot_file, "    nodesep=0.4;\n");
+                    fprintf(dot_file, "    ranksep=0.6;\n");
+                    fprintf(dot_file, "    node [fontname=\"Arial\", margin=\"0.1,0.05\"];\n");
+                    
+                    export_tree_to_dot(root, dot_file);
+                    
+                    fprintf(dot_file, "\n    { rank=same;\n");
+                    int last_leaf = -1;
+                    export_leaves_to_dot(root, dot_file, &last_leaf);
+                    fprintf(dot_file, "    }\n");
+                    
+                    fprintf(dot_file, "}\n");
+                    fclose(dot_file);
+                    
+                    printf("\n======================================================\n");
+                }
 			}
 		}
 		while(!feof(yyin));
