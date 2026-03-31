@@ -14,7 +14,6 @@
 [LEXER] Mode: INITIAL | Depth: 1 | =                      : '='
 [LEXER] Mode: FSTRING | Depth: 1 | FSTRING_START          : 'f"'
 [LEXER] Mode: FSTRING | Depth: 1 | STRING_LITERAL_PART    : 'Result: '
-[REDUCE] f_string_body -> f_string_body STRING_LITERAL_PART
 [LEXER] Mode: INITIAL | Depth: 0 | INTERPOLATION_START    : '{'
 [LEXER] Mode: INITIAL | Depth: 0 | INT                    : 'int'
 ***parsing terminated*** [syntax error]

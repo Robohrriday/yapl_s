@@ -65,25 +65,18 @@
 [LEXER] Mode: INITIAL | Depth: 1 | =                      : '='
 [LEXER] Mode: FSTRING | Depth: 1 | FSTRING_START          : 'f"'
 [LEXER] Mode: FSTRING | Depth: 1 | STRING_LITERAL_PART    : 'Area at ('
-[REDUCE] f_string_body -> f_string_body STRING_LITERAL_PART
 [LEXER] Mode: INITIAL | Depth: 0 | INTERPOLATION_START    : '{'
 [LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'pt'
 [LEXER] Mode: INITIAL | Depth: 0 | .                      : '.'
 [LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'x'
 [LEXER] Mode: FSTRING | Depth: 1 | INTERPOLATION_END      : '}'
-[REDUCE] interpolation_block -> INTERPOLATION_START expression INTERPOLATION_END
-[REDUCE] f_string_body -> f_string_body interpolation_block
 [LEXER] Mode: FSTRING | Depth: 1 | STRING_LITERAL_PART    : ', '
-[REDUCE] f_string_body -> f_string_body STRING_LITERAL_PART
 [LEXER] Mode: INITIAL | Depth: 0 | INTERPOLATION_START    : '{'
 [LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'pt'
 [LEXER] Mode: INITIAL | Depth: 0 | .                      : '.'
 [LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'y'
 [LEXER] Mode: FSTRING | Depth: 1 | INTERPOLATION_END      : '}'
-[REDUCE] interpolation_block -> INTERPOLATION_START expression INTERPOLATION_END
-[REDUCE] f_string_body -> f_string_body interpolation_block
 [LEXER] Mode: FSTRING | Depth: 1 | STRING_LITERAL_PART    : ') is '
-[REDUCE] f_string_body -> f_string_body STRING_LITERAL_PART
 [LEXER] Mode: INITIAL | Depth: 0 | INTERPOLATION_START    : '{'
 [LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'compute_area'
 [LEXER] Mode: INITIAL | Depth: 0 | (                      : '('
@@ -99,17 +92,533 @@
 [LEXER] Mode: INITIAL | Depth: 0 | I_CONSTANT             : '2'
 [LEXER] Mode: INITIAL | Depth: 0 | )                      : ')'
 [LEXER] Mode: FSTRING | Depth: 1 | INTERPOLATION_END      : '}'
-[REDUCE] interpolation_block -> INTERPOLATION_START expression INTERPOLATION_END
-[REDUCE] f_string_body -> f_string_body interpolation_block
 [LEXER] Mode: FSTRING | Depth: 1 | STRING_LITERAL_PART    : ' sq units.'
-[REDUCE] f_string_body -> f_string_body STRING_LITERAL_PART
 [LEXER] Mode: INITIAL | Depth: 1 | FSTRING_END            : '"'
-[REDUCE] f_string_expression -> FSTRING_START f_string_body FSTRING_END
 [LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
 [LEXER] Mode: INITIAL | Depth: 1 | RETURN                 : 'return'
 [LEXER] Mode: INITIAL | Depth: 1 | I_CONSTANT             : '0'
 [LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
 [LEXER] Mode: INITIAL | Depth: 0 | }                      : '}'
+
+======================================================
+              HIERARCHICAL PARSE TREE                 
+======================================================
+\-- translation_unit
+    |-- translation_unit
+    \-- external_declaration
+        \-- function_definition
+            |-- declaration_specifiers
+            |   |-- translation_unit
+            |   |   \-- external_declaration
+            |   |       \-- declaration
+            |   |           |-- declaration_specifiers
+            |   |           |   \-- type_specifier
+            |   |           |       \-- struct_or_union_specifier
+            |   |           |           |-- struct_or_union
+            |   |           |           |   \-- STRUCT
+            |   |           |           |-- IDENTIFIER
+            |   |           |           |-- '{'
+            |   |           |           |-- struct_declaration_list
+            |   |           |           |   |-- struct_declaration_list
+            |   |           |           |   |   \-- struct_declaration
+            |   |           |           |   |       |-- specifier_qualifier_list
+            |   |           |           |   |       |   \-- type_specifier
+            |   |           |           |   |       |       \-- INT
+            |   |           |           |   |       |-- struct_declarator_list
+            |   |           |           |   |       |   \-- struct_declarator
+            |   |           |           |   |       |       \-- declarator
+            |   |           |           |   |       |           \-- direct_declarator
+            |   |           |           |   |       |               \-- IDENTIFIER
+            |   |           |           |   |       \-- ';'
+            |   |           |           |   \-- struct_declaration
+            |   |           |           |       |-- specifier_qualifier_list
+            |   |           |           |       |   \-- type_specifier
+            |   |           |           |       |       \-- INT
+            |   |           |           |       |-- struct_declarator_list
+            |   |           |           |       |   \-- struct_declarator
+            |   |           |           |       |       \-- declarator
+            |   |           |           |       |           \-- direct_declarator
+            |   |           |           |       |               \-- IDENTIFIER
+            |   |           |           |       \-- ';'
+            |   |           |           \-- '}'
+            |   |           \-- ';'
+            |   \-- external_declaration
+            |       \-- function_definition
+            |           |-- declaration_specifiers
+            |           |   \-- type_specifier
+            |           |       \-- INT
+            |           |-- declarator
+            |           |   \-- direct_declarator
+            |           |       |-- direct_declarator
+            |           |       |   \-- IDENTIFIER
+            |           |       |-- '('
+            |           |       |-- parameter_type_list
+            |           |       |   \-- parameter_list
+            |           |       |       |-- parameter_list
+            |           |       |       |   \-- parameter_declaration
+            |           |       |       |       |-- declaration_specifiers
+            |           |       |       |       |   \-- type_specifier
+            |           |       |       |       |       \-- INT
+            |           |       |       |       \-- declarator
+            |           |       |       |           \-- direct_declarator
+            |           |       |       |               \-- IDENTIFIER
+            |           |       |       |-- ','
+            |           |       |       \-- parameter_declaration
+            |           |       |           |-- declaration_specifiers
+            |           |       |           |   \-- type_specifier
+            |           |       |           |       \-- INT
+            |           |       |           \-- declarator
+            |           |       |               \-- direct_declarator
+            |           |       |                   \-- IDENTIFIER
+            |           |       \-- ')'
+            |           \-- compound_statement
+            |               |-- '{'
+            |               |-- block_item_list
+            |               |   \-- block_item
+            |               |       \-- statement
+            |               |           \-- jump_statement
+            |               |               |-- RETURN
+            |               |               |-- expression
+            |               |               |   \-- assignment_expression
+            |               |               |       \-- conditional_expression
+            |               |               |           \-- logical_or_expression
+            |               |               |               \-- logical_and_expression
+            |               |               |                   \-- inclusive_or_expression
+            |               |               |                       \-- exclusive_or_expression
+            |               |               |                           \-- and_expression
+            |               |               |                               \-- equality_expression
+            |               |               |                                   \-- relational_expression
+            |               |               |                                       \-- concatenation_expression
+            |               |               |                                           \-- shift_expression
+            |               |               |                                               \-- additive_expression
+            |               |               |                                                   \-- multiplicative_expression
+            |               |               |                                                       |-- multiplicative_expression
+            |               |               |                                                       |   \-- cast_expression
+            |               |               |                                                       |       \-- unary_expression
+            |               |               |                                                       |           \-- postfix_expression
+            |               |               |                                                       |               \-- primary_expression
+            |               |               |                                                       |                   \-- IDENTIFIER
+            |               |               |                                                       |-- '*'
+            |               |               |                                                       \-- cast_expression
+            |               |               |                                                           \-- unary_expression
+            |               |               |                                                               \-- postfix_expression
+            |               |               |                                                                   \-- primary_expression
+            |               |               |                                                                       \-- IDENTIFIER
+            |               |               \-- ';'
+            |               \-- '}'
+            |-- declarator
+            |   \-- type_specifier
+            |       \-- INT
+            \-- compound_statement
+                |-- '{'
+                |-- block_item_list
+                |   |-- block_item_list
+                |   |   |-- block_item_list
+                |   |   |   \-- direct_declarator
+                |   |   |       |-- direct_declarator
+                |   |   |       |   \-- IDENTIFIER
+                |   |   |       |-- '('
+                |   |   |       \-- ')'
+                |   |   \-- block_item
+                |   |       \-- declaration
+                |   |           |-- declaration_specifiers
+                |   |           |   |-- block_item_list
+                |   |           |   |   |-- block_item_list
+                |   |           |   |   |   |-- block_item_list
+                |   |           |   |   |   |   |-- block_item_list
+                |   |           |   |   |   |   |   \-- block_item
+                |   |           |   |   |   |   |       \-- declaration
+                |   |           |   |   |   |   |           |-- declaration_specifiers
+                |   |           |   |   |   |   |           |   \-- type_specifier
+                |   |           |   |   |   |   |           |       \-- struct_or_union_specifier
+                |   |           |   |   |   |   |           |           |-- struct_or_union
+                |   |           |   |   |   |   |           |           |   \-- STRUCT
+                |   |           |   |   |   |   |           |           \-- IDENTIFIER
+                |   |           |   |   |   |   |           |-- init_declarator_list
+                |   |           |   |   |   |   |           |   \-- init_declarator
+                |   |           |   |   |   |   |           |       \-- declarator
+                |   |           |   |   |   |   |           |           \-- direct_declarator
+                |   |           |   |   |   |   |           |               \-- IDENTIFIER
+                |   |           |   |   |   |   |           \-- ';'
+                |   |           |   |   |   |   \-- block_item
+                |   |           |   |   |   |       \-- statement
+                |   |           |   |   |   |           \-- expression_statement
+                |   |           |   |   |   |               |-- expression
+                |   |           |   |   |   |               |   \-- assignment_expression
+                |   |           |   |   |   |               |       |-- unary_expression
+                |   |           |   |   |   |               |       |   \-- postfix_expression
+                |   |           |   |   |   |               |       |       |-- postfix_expression
+                |   |           |   |   |   |               |       |       |   \-- primary_expression
+                |   |           |   |   |   |               |       |       |       \-- IDENTIFIER
+                |   |           |   |   |   |               |       |       |-- '.'
+                |   |           |   |   |   |               |       |       \-- IDENTIFIER
+                |   |           |   |   |   |               |       |-- assignment_operator
+                |   |           |   |   |   |               |       |   \-- '='
+                |   |           |   |   |   |               |       \-- assignment_expression
+                |   |           |   |   |   |               |           \-- conditional_expression
+                |   |           |   |   |   |               |               \-- logical_or_expression
+                |   |           |   |   |   |               |                   \-- logical_and_expression
+                |   |           |   |   |   |               |                       \-- inclusive_or_expression
+                |   |           |   |   |   |               |                           \-- exclusive_or_expression
+                |   |           |   |   |   |               |                               \-- and_expression
+                |   |           |   |   |   |               |                                   \-- equality_expression
+                |   |           |   |   |   |               |                                       \-- relational_expression
+                |   |           |   |   |   |               |                                           \-- concatenation_expression
+                |   |           |   |   |   |               |                                               \-- shift_expression
+                |   |           |   |   |   |               |                                                   \-- additive_expression
+                |   |           |   |   |   |               |                                                       \-- multiplicative_expression
+                |   |           |   |   |   |               |                                                           \-- cast_expression
+                |   |           |   |   |   |               |                                                               \-- unary_expression
+                |   |           |   |   |   |               |                                                                   \-- postfix_expression
+                |   |           |   |   |   |               |                                                                       \-- primary_expression
+                |   |           |   |   |   |               |                                                                           \-- constant
+                |   |           |   |   |   |               |                                                                               \-- I_CONSTANT
+                |   |           |   |   |   |               \-- ';'
+                |   |           |   |   |   \-- block_item
+                |   |           |   |   |       \-- statement
+                |   |           |   |   |           \-- expression_statement
+                |   |           |   |   |               |-- expression
+                |   |           |   |   |               |   \-- assignment_expression
+                |   |           |   |   |               |       |-- unary_expression
+                |   |           |   |   |               |       |   \-- postfix_expression
+                |   |           |   |   |               |       |       |-- postfix_expression
+                |   |           |   |   |               |       |       |   \-- primary_expression
+                |   |           |   |   |               |       |       |       \-- IDENTIFIER
+                |   |           |   |   |               |       |       |-- '.'
+                |   |           |   |   |               |       |       \-- IDENTIFIER
+                |   |           |   |   |               |       |-- assignment_operator
+                |   |           |   |   |               |       |   \-- '='
+                |   |           |   |   |               |       \-- assignment_expression
+                |   |           |   |   |               |           \-- conditional_expression
+                |   |           |   |   |               |               \-- logical_or_expression
+                |   |           |   |   |               |                   \-- logical_and_expression
+                |   |           |   |   |               |                       \-- inclusive_or_expression
+                |   |           |   |   |               |                           \-- exclusive_or_expression
+                |   |           |   |   |               |                               \-- and_expression
+                |   |           |   |   |               |                                   \-- equality_expression
+                |   |           |   |   |               |                                       \-- relational_expression
+                |   |           |   |   |               |                                           \-- concatenation_expression
+                |   |           |   |   |               |                                               \-- shift_expression
+                |   |           |   |   |               |                                                   \-- additive_expression
+                |   |           |   |   |               |                                                       \-- multiplicative_expression
+                |   |           |   |   |               |                                                           \-- cast_expression
+                |   |           |   |   |               |                                                               \-- unary_expression
+                |   |           |   |   |               |                                                                   \-- postfix_expression
+                |   |           |   |   |               |                                                                       \-- primary_expression
+                |   |           |   |   |               |                                                                           \-- constant
+                |   |           |   |   |               |                                                                               \-- I_CONSTANT
+                |   |           |   |   |               \-- ';'
+                |   |           |   |   \-- block_item
+                |   |           |   |       \-- declaration
+                |   |           |   |           |-- declaration_specifiers
+                |   |           |   |           |   \-- type_specifier
+                |   |           |   |           |       \-- INT
+                |   |           |   |           |-- init_declarator_list
+                |   |           |   |           |   \-- init_declarator
+                |   |           |   |           |       \-- declarator
+                |   |           |   |           |           \-- direct_declarator
+                |   |           |   |           |               |-- direct_declarator
+                |   |           |   |           |               |   \-- IDENTIFIER
+                |   |           |   |           |               |-- '['
+                |   |           |   |           |               |-- assignment_expression
+                |   |           |   |           |               |   \-- conditional_expression
+                |   |           |   |           |               |       \-- logical_or_expression
+                |   |           |   |           |               |           \-- logical_and_expression
+                |   |           |   |           |               |               \-- inclusive_or_expression
+                |   |           |   |           |               |                   \-- exclusive_or_expression
+                |   |           |   |           |               |                       \-- and_expression
+                |   |           |   |           |               |                           \-- equality_expression
+                |   |           |   |           |               |                               \-- relational_expression
+                |   |           |   |           |               |                                   \-- concatenation_expression
+                |   |           |   |           |               |                                       \-- shift_expression
+                |   |           |   |           |               |                                           \-- additive_expression
+                |   |           |   |           |               |                                               \-- multiplicative_expression
+                |   |           |   |           |               |                                                   \-- cast_expression
+                |   |           |   |           |               |                                                       \-- unary_expression
+                |   |           |   |           |               |                                                           \-- postfix_expression
+                |   |           |   |           |               |                                                               \-- primary_expression
+                |   |           |   |           |               |                                                                   \-- constant
+                |   |           |   |           |               |                                                                       \-- I_CONSTANT
+                |   |           |   |           |               \-- ']'
+                |   |           |   |           \-- ';'
+                |   |           |   \-- block_item
+                |   |           |       \-- statement
+                |   |           |           \-- expression_statement
+                |   |           |               |-- expression
+                |   |           |               |   \-- assignment_expression
+                |   |           |               |       |-- unary_expression
+                |   |           |               |       |   \-- postfix_expression
+                |   |           |               |       |       |-- postfix_expression
+                |   |           |               |       |       |   \-- primary_expression
+                |   |           |               |       |       |       \-- IDENTIFIER
+                |   |           |               |       |       |-- '['
+                |   |           |               |       |       |-- expression
+                |   |           |               |       |       |   \-- assignment_expression
+                |   |           |               |       |       |       \-- conditional_expression
+                |   |           |               |       |       |           \-- logical_or_expression
+                |   |           |               |       |       |               \-- logical_and_expression
+                |   |           |               |       |       |                   \-- inclusive_or_expression
+                |   |           |               |       |       |                       \-- exclusive_or_expression
+                |   |           |               |       |       |                           \-- and_expression
+                |   |           |               |       |       |                               \-- equality_expression
+                |   |           |               |       |       |                                   \-- relational_expression
+                |   |           |               |       |       |                                       \-- concatenation_expression
+                |   |           |               |       |       |                                           \-- shift_expression
+                |   |           |               |       |       |                                               \-- additive_expression
+                |   |           |               |       |       |                                                   \-- multiplicative_expression
+                |   |           |               |       |       |                                                       \-- cast_expression
+                |   |           |               |       |       |                                                           \-- unary_expression
+                |   |           |               |       |       |                                                               \-- postfix_expression
+                |   |           |               |       |       |                                                                   \-- primary_expression
+                |   |           |               |       |       |                                                                       \-- constant
+                |   |           |               |       |       |                                                                           \-- I_CONSTANT
+                |   |           |               |       |       \-- ']'
+                |   |           |               |       |-- assignment_operator
+                |   |           |               |       |   \-- '='
+                |   |           |               |       \-- assignment_expression
+                |   |           |               |           \-- conditional_expression
+                |   |           |               |               \-- logical_or_expression
+                |   |           |               |                   \-- logical_and_expression
+                |   |           |               |                       \-- inclusive_or_expression
+                |   |           |               |                           \-- exclusive_or_expression
+                |   |           |               |                               \-- and_expression
+                |   |           |               |                                   \-- equality_expression
+                |   |           |               |                                       \-- relational_expression
+                |   |           |               |                                           \-- concatenation_expression
+                |   |           |               |                                               \-- shift_expression
+                |   |           |               |                                                   \-- additive_expression
+                |   |           |               |                                                       \-- multiplicative_expression
+                |   |           |               |                                                           \-- cast_expression
+                |   |           |               |                                                               \-- unary_expression
+                |   |           |               |                                                                   \-- postfix_expression
+                |   |           |               |                                                                       \-- primary_expression
+                |   |           |               |                                                                           \-- constant
+                |   |           |               |                                                                               \-- I_CONSTANT
+                |   |           |               \-- ';'
+                |   |           |-- init_declarator_list
+                |   |           |   \-- init_declarator
+                |   |           |       |-- declarator
+                |   |           |       |   \-- type_specifier
+                |   |           |       |       \-- CHAR
+                |   |           |       |-- '='
+                |   |           |       \-- initializer
+                |   |           |           \-- assignment_expression
+                |   |           |               \-- conditional_expression
+                |   |           |                   \-- logical_or_expression
+                |   |           |                       \-- logical_and_expression
+                |   |           |                           \-- inclusive_or_expression
+                |   |           |                               \-- exclusive_or_expression
+                |   |           |                                   \-- and_expression
+                |   |           |                                       \-- equality_expression
+                |   |           |                                           \-- relational_expression
+                |   |           |                                               \-- concatenation_expression
+                |   |           |                                                   \-- shift_expression
+                |   |           |                                                       \-- additive_expression
+                |   |           |                                                           \-- multiplicative_expression
+                |   |           |                                                               \-- cast_expression
+                |   |           |                                                                   \-- unary_expression
+                |   |           |                                                                       \-- postfix_expression
+                |   |           |                                                                           \-- primary_expression
+                |   |           |                                                                               \-- f_string_expression
+                |   |           |                                                                                   |-- FSTRING_START
+                |   |           |                                                                                   |-- f_string_body
+                |   |           |                                                                                   |   |-- f_string_body
+                |   |           |                                                                                   |   |   |-- f_string_body
+                |   |           |                                                                                   |   |   |   |-- f_string_body
+                |   |           |                                                                                   |   |   |   |   |-- f_string_body
+                |   |           |                                                                                   |   |   |   |   |   |-- f_string_body
+                |   |           |                                                                                   |   |   |   |   |   |   |-- f_string_body
+                |   |           |                                                                                   |   |   |   |   |   |   |   |-- f_string_body
+                |   |           |                                                                                   |   |   |   |   |   |   |   |   |-- /*
+                |   |           |                                                                                   |   |   |   |   |   |   |   |   |-- empty
+                |   |           |                                                                                   |   |   |   |   |   |   |   |   |   |-- pointer
+                |   |           |                                                                                   |   |   |   |   |   |   |   |   |   |   \-- '*'
+                |   |           |                                                                                   |   |   |   |   |   |   |   |   |   \-- direct_declarator
+                |   |           |                                                                                   |   |   |   |   |   |   |   |   |       \-- IDENTIFIER
+                |   |           |                                                                                   |   |   |   |   |   |   |   |   \-- */
+                |   |           |                                                                                   |   |   |   |   |   |   |   \-- STRING_LITERAL_PART
+                |   |           |                                                                                   |   |   |   |   |   |   \-- interpolation_block
+                |   |           |                                                                                   |   |   |   |   |   |       |-- INTERPOLATION_START
+                |   |           |                                                                                   |   |   |   |   |   |       |-- expression
+                |   |           |                                                                                   |   |   |   |   |   |       |   \-- assignment_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |       \-- conditional_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |           \-- logical_or_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |               \-- logical_and_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                   \-- inclusive_or_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                       \-- exclusive_or_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                           \-- and_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                               \-- equality_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                                   \-- relational_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                                       \-- concatenation_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                                           \-- shift_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                                               \-- additive_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                                                   \-- multiplicative_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                                                       \-- cast_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                                                           \-- unary_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                                                               \-- postfix_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                                                                   |-- postfix_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                                                                   |   \-- primary_expression
+                |   |           |                                                                                   |   |   |   |   |   |       |                                                                   |       \-- IDENTIFIER
+                |   |           |                                                                                   |   |   |   |   |   |       |                                                                   |-- '.'
+                |   |           |                                                                                   |   |   |   |   |   |       |                                                                   \-- IDENTIFIER
+                |   |           |                                                                                   |   |   |   |   |   |       \-- INTERPOLATION_END
+                |   |           |                                                                                   |   |   |   |   |   \-- STRING_LITERAL_PART
+                |   |           |                                                                                   |   |   |   |   \-- interpolation_block
+                |   |           |                                                                                   |   |   |   |       |-- INTERPOLATION_START
+                |   |           |                                                                                   |   |   |   |       |-- expression
+                |   |           |                                                                                   |   |   |   |       |   \-- assignment_expression
+                |   |           |                                                                                   |   |   |   |       |       \-- conditional_expression
+                |   |           |                                                                                   |   |   |   |       |           \-- logical_or_expression
+                |   |           |                                                                                   |   |   |   |       |               \-- logical_and_expression
+                |   |           |                                                                                   |   |   |   |       |                   \-- inclusive_or_expression
+                |   |           |                                                                                   |   |   |   |       |                       \-- exclusive_or_expression
+                |   |           |                                                                                   |   |   |   |       |                           \-- and_expression
+                |   |           |                                                                                   |   |   |   |       |                               \-- equality_expression
+                |   |           |                                                                                   |   |   |   |       |                                   \-- relational_expression
+                |   |           |                                                                                   |   |   |   |       |                                       \-- concatenation_expression
+                |   |           |                                                                                   |   |   |   |       |                                           \-- shift_expression
+                |   |           |                                                                                   |   |   |   |       |                                               \-- additive_expression
+                |   |           |                                                                                   |   |   |   |       |                                                   \-- multiplicative_expression
+                |   |           |                                                                                   |   |   |   |       |                                                       \-- cast_expression
+                |   |           |                                                                                   |   |   |   |       |                                                           \-- unary_expression
+                |   |           |                                                                                   |   |   |   |       |                                                               \-- postfix_expression
+                |   |           |                                                                                   |   |   |   |       |                                                                   |-- postfix_expression
+                |   |           |                                                                                   |   |   |   |       |                                                                   |   \-- primary_expression
+                |   |           |                                                                                   |   |   |   |       |                                                                   |       \-- IDENTIFIER
+                |   |           |                                                                                   |   |   |   |       |                                                                   |-- '.'
+                |   |           |                                                                                   |   |   |   |       |                                                                   \-- IDENTIFIER
+                |   |           |                                                                                   |   |   |   |       \-- INTERPOLATION_END
+                |   |           |                                                                                   |   |   |   \-- STRING_LITERAL_PART
+                |   |           |                                                                                   |   |   \-- interpolation_block
+                |   |           |                                                                                   |   |       |-- INTERPOLATION_START
+                |   |           |                                                                                   |   |       |-- expression
+                |   |           |                                                                                   |   |       |   \-- assignment_expression
+                |   |           |                                                                                   |   |       |       \-- conditional_expression
+                |   |           |                                                                                   |   |       |           \-- logical_or_expression
+                |   |           |                                                                                   |   |       |               \-- logical_and_expression
+                |   |           |                                                                                   |   |       |                   \-- inclusive_or_expression
+                |   |           |                                                                                   |   |       |                       \-- exclusive_or_expression
+                |   |           |                                                                                   |   |       |                           \-- and_expression
+                |   |           |                                                                                   |   |       |                               \-- equality_expression
+                |   |           |                                                                                   |   |       |                                   \-- relational_expression
+                |   |           |                                                                                   |   |       |                                       \-- concatenation_expression
+                |   |           |                                                                                   |   |       |                                           \-- shift_expression
+                |   |           |                                                                                   |   |       |                                               \-- additive_expression
+                |   |           |                                                                                   |   |       |                                                   \-- multiplicative_expression
+                |   |           |                                                                                   |   |       |                                                       \-- cast_expression
+                |   |           |                                                                                   |   |       |                                                           \-- unary_expression
+                |   |           |                                                                                   |   |       |                                                               \-- postfix_expression
+                |   |           |                                                                                   |   |       |                                                                   |-- postfix_expression
+                |   |           |                                                                                   |   |       |                                                                   |   \-- primary_expression
+                |   |           |                                                                                   |   |       |                                                                   |       \-- IDENTIFIER
+                |   |           |                                                                                   |   |       |                                                                   |-- '('
+                |   |           |                                                                                   |   |       |                                                                   |-- argument_expression_list
+                |   |           |                                                                                   |   |       |                                                                   |   |-- argument_expression_list
+                |   |           |                                                                                   |   |       |                                                                   |   |   \-- assignment_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |       \-- conditional_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |           \-- logical_or_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |               \-- logical_and_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                   \-- inclusive_or_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                       \-- exclusive_or_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                           \-- and_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                               \-- equality_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                   \-- relational_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                       \-- concatenation_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                           \-- shift_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                               \-- additive_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                   \-- multiplicative_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                       \-- cast_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                           \-- unary_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                               \-- postfix_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |-- postfix_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |   \-- primary_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |       \-- IDENTIFIER
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |-- '['
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |-- expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |   \-- assignment_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |       \-- conditional_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |           \-- logical_or_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |               \-- logical_and_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                   \-- inclusive_or_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                       \-- exclusive_or_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                           \-- and_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                               \-- equality_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                                   \-- relational_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                                       \-- concatenation_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                                           \-- shift_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                                               \-- additive_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                                                   \-- multiplicative_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                                                       \-- cast_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                                                           \-- unary_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                                                               \-- postfix_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                                                                   \-- primary_expression
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                                                                       \-- constant
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   |                                                                           \-- I_CONSTANT
+                |   |           |                                                                                   |   |       |                                                                   |   |                                                                   \-- ']'
+                |   |           |                                                                                   |   |       |                                                                   |   |-- ','
+                |   |           |                                                                                   |   |       |                                                                   |   \-- assignment_expression
+                |   |           |                                                                                   |   |       |                                                                   |       \-- conditional_expression
+                |   |           |                                                                                   |   |       |                                                                   |           \-- logical_or_expression
+                |   |           |                                                                                   |   |       |                                                                   |               \-- logical_and_expression
+                |   |           |                                                                                   |   |       |                                                                   |                   \-- inclusive_or_expression
+                |   |           |                                                                                   |   |       |                                                                   |                       \-- exclusive_or_expression
+                |   |           |                                                                                   |   |       |                                                                   |                           \-- and_expression
+                |   |           |                                                                                   |   |       |                                                                   |                               \-- equality_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                   \-- relational_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                       \-- concatenation_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                           \-- shift_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                               \-- additive_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                                   \-- multiplicative_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                                       |-- multiplicative_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                                       |   \-- cast_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                                       |       \-- unary_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                                       |           \-- postfix_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                                       |               |-- postfix_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                                       |               |   \-- primary_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                                       |               |       \-- IDENTIFIER
+                |   |           |                                                                                   |   |       |                                                                   |                                                       |               |-- '.'
+                |   |           |                                                                                   |   |       |                                                                   |                                                       |               \-- IDENTIFIER
+                |   |           |                                                                                   |   |       |                                                                   |                                                       |-- '*'
+                |   |           |                                                                                   |   |       |                                                                   |                                                       \-- cast_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                                           \-- unary_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                                               \-- postfix_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                                                   \-- primary_expression
+                |   |           |                                                                                   |   |       |                                                                   |                                                                       \-- constant
+                |   |           |                                                                                   |   |       |                                                                   |                                                                           \-- I_CONSTANT
+                |   |           |                                                                                   |   |       |                                                                   \-- ')'
+                |   |           |                                                                                   |   |       \-- INTERPOLATION_END
+                |   |           |                                                                                   |   \-- STRING_LITERAL_PART
+                |   |           |                                                                                   \-- FSTRING_END
+                |   |           \-- ';'
+                |   \-- block_item
+                |       \-- statement
+                |           \-- jump_statement
+                |               |-- RETURN
+                |               |-- expression
+                |               |   \-- assignment_expression
+                |               |       \-- conditional_expression
+                |               |           \-- logical_or_expression
+                |               |               \-- logical_and_expression
+                |               |                   \-- inclusive_or_expression
+                |               |                       \-- exclusive_or_expression
+                |               |                           \-- and_expression
+                |               |                               \-- equality_expression
+                |               |                                   \-- relational_expression
+                |               |                                       \-- concatenation_expression
+                |               |                                           \-- shift_expression
+                |               |                                               \-- additive_expression
+                |               |                                                   \-- multiplicative_expression
+                |               |                                                       \-- cast_expression
+                |               |                                                           \-- unary_expression
+                |               |                                                               \-- postfix_expression
+                |               |                                                                   \-- primary_expression
+                |               |                                                                       \-- constant
+                |               |                                                                           \-- I_CONSTANT
+                |               \-- ';'
+                \-- '}'
+======================================================
+Parsing Completed Successfully.
+
 ***parsing successful***
 #global_declarations = 3
 #function_definitions = 2

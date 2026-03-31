@@ -2,8 +2,8 @@ yapl_s: y.tab.c lex.yy.c
 	gcc -O3 lex.yy.c y.tab.c -o yapl_s
 	@echo "Run the program as ./yapl_s [input_file]"
 
-y.tab.c: yapl_s.y 
-	yacc -d yapl_s.y
+y.tab.c: yapl_s_new.y 
+	yacc -d yapl_s_new.y
 
 lex.yy.c: yapl_s.l y.tab.h
 	lex yapl_s.l
