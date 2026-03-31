@@ -19,4 +19,12 @@
 [LEXER] Mode: INITIAL | Depth: 0 | +                      : '+'
 [LEXER] Mode: INITIAL | Depth: 0 | I_CONSTANT             : '5'
 [LEXER] Mode: INITIAL | Depth: 0 | ;                      : ';'
+
+======================================================
+                 COMPILER ERROR                       
+======================================================
+ Location : Line 5, Column 44
+ Token    : ';'
+ Message  : syntax error, unexpected ';', expecting INTERPOLATION_END or ','
+======================================================
 ***parsing terminated*** [syntax error]

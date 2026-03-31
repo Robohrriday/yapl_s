@@ -8,20 +8,14 @@
 [LEXER] Mode: INITIAL | Depth: 1 | =                      : '='
 [LEXER] Mode: INITIAL | Depth: 1 | I_CONSTANT             : '10'
 [LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
-[LEXER] Mode: INITIAL | Depth: 1 | CHAR                   : 'char'
-[LEXER] Mode: INITIAL | Depth: 1 | *                      : '*'
-[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'invalid_syntax'
-[LEXER] Mode: INITIAL | Depth: 1 | =                      : '='
-[LEXER] Mode: FSTRING | Depth: 1 | FSTRING_START          : 'f"'
-[LEXER] Mode: FSTRING | Depth: 1 | STRING_LITERAL_PART    : 'Result: '
-[LEXER] Mode: INITIAL | Depth: 0 | INTERPOLATION_START    : '{'
-[LEXER] Mode: INITIAL | Depth: 0 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'retirn'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'x'
 
 ======================================================
                  COMPILER ERROR                       
 ======================================================
- Location : Line 5, Column 40
- Token    : 'int'
- Message  : syntax error, unexpected INT
+ Location : Line 4, Column 12
+ Token    : 'x'
+ Message  : syntax error, unexpected IDENTIFIER, expecting ',' or ';'
 ======================================================
 ***parsing terminated*** [syntax error]

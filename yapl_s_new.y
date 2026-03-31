@@ -65,6 +65,8 @@ int yylex(void) {
 
 %}
 
+%define parse.error verbose
+
 %token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL FUNC_NAME SIZEOF
 %token	PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP TH_OP
 %token	AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
@@ -642,16 +644,32 @@ char buff[2048];
 int yylex(void);
 int mode=-1;
 
+extern int yylineno;
+extern int yycolumn;
+
 void yyerror(const char *s)
 {
-	fflush(stdout);
-	
-	if(mode==-1)
-		printf("***parsing terminated*** [syntax error]\n");
-	else if(mode==0 || mode==1)
-		printf("%s\n",s);
-		
-	exit(-1);
+    fflush(stdout);
+    
+    if(mode==-1) {
+        printf("\n======================================================\n");
+        printf("                 COMPILER ERROR                       \n");
+        printf("======================================================\n");
+        
+        int start_col = yycolumn - (int)strlen(yytext);
+        if (start_col < 1) start_col = 1;
+
+        printf(" Location : Line %d, Column %d\n", yylineno, start_col);
+        printf(" Token    : '%s'\n", yytext);
+        printf(" Message  : %s\n", s);
+        
+        printf("======================================================\n");
+        printf("***parsing terminated*** [syntax error]\n");
+    }
+    else if(mode==0 || mode==1)
+        printf("%s\n",s);
+        
+    exit(-1);
 }
 
 typedef struct TreeNode {

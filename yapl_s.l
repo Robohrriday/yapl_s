@@ -5,6 +5,7 @@
 %k  284
 %a  1213
 %o  1117
+%option yylineno
 
 O   [0-7]
 D   [0-9]
@@ -27,6 +28,18 @@ WS  [ \t\v\n\f]
 #include <stdlib.h>
 #include <string.h>
 #include "y.tab.h"
+
+
+int yycolumn = 1;
+
+#define YY_USER_ACTION \
+    for (int i = 0; yytext[i] != '\0'; i++) { \
+        if (yytext[i] == '\n') { \
+            yycolumn = 1; \
+        } else { \
+            yycolumn++; \
+        } \
+    }
 
 extern char buff[2048];
 extern int mode;
