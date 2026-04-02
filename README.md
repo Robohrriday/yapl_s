@@ -47,6 +47,7 @@ yapl_s/
 ├── Makefile          # Build and test automation
 ├── yapl_s            # Legacy compiler executable
 ├── yapl_s_new        # Enhanced compiler executable
+├── yapl-s-latest.pdf # Latest report
 ├── README.md         # This file
 ├── docs/             # Supporting docs and manuals
 ├── parser_analysis/
