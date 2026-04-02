@@ -1,0 +1,122 @@
+[LEXER] Mode: INITIAL | Depth: 0 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'main'
+[LEXER] Mode: INITIAL | Depth: 0 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 0 | )                      : ')'
+[LEXER] Mode: INITIAL | Depth: 1 | {                      : '{'
+[LEXER] Mode: INITIAL | Depth: 1 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'i'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 1 | CHAR                   : 'char'
+[LEXER] Mode: INITIAL | Depth: 1 | *                      : '*'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'base'
+[LEXER] Mode: INITIAL | Depth: 1 | =                      : '='
+[LEXER] Mode: INITIAL | Depth: 1 | STRING_LITERAL         : '"Item"'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 1 | FOR                    : 'for'
+[LEXER] Mode: INITIAL | Depth: 1 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'i'
+[LEXER] Mode: INITIAL | Depth: 1 | =                      : '='
+[LEXER] Mode: INITIAL | Depth: 1 | I_CONSTANT             : '0'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'i'
+[LEXER] Mode: INITIAL | Depth: 1 | <                      : '<'
+[LEXER] Mode: INITIAL | Depth: 1 | I_CONSTANT             : '5'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'i'
+[LEXER] Mode: INITIAL | Depth: 1 | INC_OP                 : '++'
+[LEXER] Mode: INITIAL | Depth: 1 | )                      : ')'
+[LEXER] Mode: INITIAL | Depth: 2 | {                      : '{'
+[LEXER] Mode: INITIAL | Depth: 2 | CHAR                   : 'char'
+[LEXER] Mode: INITIAL | Depth: 2 | *                      : '*'
+[LEXER] Mode: INITIAL | Depth: 2 | IDENTIFIER             : 'current'
+[LEXER] Mode: INITIAL | Depth: 2 | =                      : '='
+[LEXER] Mode: INITIAL | Depth: 2 | IDENTIFIER             : 'base'
+[LEXER] Mode: INITIAL | Depth: 2 | @                      : '@'
+[LEXER] Mode: FSTRING | Depth: 2 | FSTRING_START          : 'f"'
+[LEXER] Mode: FSTRING | Depth: 2 | STRING_LITERAL_PART    : '_'
+[REDUCE] f_string_body -> f_string_body STRING_LITERAL_PART
+[LEXER] Mode: INITIAL | Depth: 0 | INTERPOLATION_START    : '{'
+[LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'i'
+[LEXER] Mode: FSTRING | Depth: 2 | INTERPOLATION_END      : '}'
+[REDUCE] interpolation_block -> INTERPOLATION_START expression INTERPOLATION_END
+[REDUCE] f_string_body -> f_string_body interpolation_block
+[LEXER] Mode: INITIAL | Depth: 2 | FSTRING_END            : '"'
+[REDUCE] f_string_expression -> FSTRING_START f_string_body FSTRING_END
+[LEXER] Mode: INITIAL | Depth: 2 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 2 | IF                     : 'if'
+[LEXER] Mode: INITIAL | Depth: 2 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 2 | IDENTIFIER             : 'i'
+[LEXER] Mode: INITIAL | Depth: 2 | EQ_OP                  : '=='
+[LEXER] Mode: INITIAL | Depth: 2 | I_CONSTANT             : '0'
+[LEXER] Mode: INITIAL | Depth: 2 | )                      : ')'
+[LEXER] Mode: INITIAL | Depth: 3 | {                      : '{'
+[LEXER] Mode: INITIAL | Depth: 3 | CHAR                   : 'char'
+[LEXER] Mode: INITIAL | Depth: 3 | *                      : '*'
+[LEXER] Mode: INITIAL | Depth: 3 | IDENTIFIER             : 'log'
+[LEXER] Mode: INITIAL | Depth: 3 | =                      : '='
+[LEXER] Mode: FSTRING | Depth: 3 | FSTRING_START          : 'f"'
+[LEXER] Mode: FSTRING | Depth: 3 | STRING_LITERAL_PART    : 'Starting: '
+[REDUCE] f_string_body -> f_string_body STRING_LITERAL_PART
+[LEXER] Mode: INITIAL | Depth: 0 | INTERPOLATION_START    : '{'
+[LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'current'
+[LEXER] Mode: FSTRING | Depth: 3 | INTERPOLATION_END      : '}'
+[REDUCE] interpolation_block -> INTERPOLATION_START expression INTERPOLATION_END
+[REDUCE] f_string_body -> f_string_body interpolation_block
+[LEXER] Mode: INITIAL | Depth: 3 | FSTRING_END            : '"'
+[REDUCE] f_string_expression -> FSTRING_START f_string_body FSTRING_END
+[LEXER] Mode: INITIAL | Depth: 3 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 2 | }                      : '}'
+[LEXER] Mode: INITIAL | Depth: 2 | ELSE                   : 'else'
+[LEXER] Mode: INITIAL | Depth: 2 | IF                     : 'if'
+[LEXER] Mode: INITIAL | Depth: 2 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 2 | IDENTIFIER             : 'i'
+[LEXER] Mode: INITIAL | Depth: 2 | EQ_OP                  : '=='
+[LEXER] Mode: INITIAL | Depth: 2 | I_CONSTANT             : '4'
+[LEXER] Mode: INITIAL | Depth: 2 | )                      : ')'
+[LEXER] Mode: INITIAL | Depth: 3 | {                      : '{'
+[LEXER] Mode: INITIAL | Depth: 3 | CHAR                   : 'char'
+[LEXER] Mode: INITIAL | Depth: 3 | *                      : '*'
+[LEXER] Mode: INITIAL | Depth: 3 | IDENTIFIER             : 'log'
+[LEXER] Mode: INITIAL | Depth: 3 | =                      : '='
+[LEXER] Mode: FSTRING | Depth: 3 | FSTRING_START          : 'f"'
+[LEXER] Mode: FSTRING | Depth: 3 | STRING_LITERAL_PART    : 'Finishing: '
+[REDUCE] f_string_body -> f_string_body STRING_LITERAL_PART
+[LEXER] Mode: INITIAL | Depth: 0 | INTERPOLATION_START    : '{'
+[LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'current'
+[LEXER] Mode: FSTRING | Depth: 3 | INTERPOLATION_END      : '}'
+[REDUCE] interpolation_block -> INTERPOLATION_START expression INTERPOLATION_END
+[REDUCE] f_string_body -> f_string_body interpolation_block
+[LEXER] Mode: INITIAL | Depth: 3 | FSTRING_END            : '"'
+[REDUCE] f_string_expression -> FSTRING_START f_string_body FSTRING_END
+[LEXER] Mode: INITIAL | Depth: 3 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 2 | }                      : '}'
+[LEXER] Mode: INITIAL | Depth: 2 | ELSE                   : 'else'
+[LEXER] Mode: INITIAL | Depth: 3 | {                      : '{'
+[LEXER] Mode: INITIAL | Depth: 3 | CHAR                   : 'char'
+[LEXER] Mode: INITIAL | Depth: 3 | *                      : '*'
+[LEXER] Mode: INITIAL | Depth: 3 | IDENTIFIER             : 'log'
+[LEXER] Mode: INITIAL | Depth: 3 | =                      : '='
+[LEXER] Mode: FSTRING | Depth: 3 | FSTRING_START          : 'f"'
+[LEXER] Mode: FSTRING | Depth: 3 | STRING_LITERAL_PART    : 'Processing: '
+[REDUCE] f_string_body -> f_string_body STRING_LITERAL_PART
+[LEXER] Mode: INITIAL | Depth: 0 | INTERPOLATION_START    : '{'
+[LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'current'
+[LEXER] Mode: FSTRING | Depth: 3 | INTERPOLATION_END      : '}'
+[REDUCE] interpolation_block -> INTERPOLATION_START expression INTERPOLATION_END
+[REDUCE] f_string_body -> f_string_body interpolation_block
+[LEXER] Mode: INITIAL | Depth: 3 | FSTRING_END            : '"'
+[REDUCE] f_string_expression -> FSTRING_START f_string_body FSTRING_END
+[LEXER] Mode: INITIAL | Depth: 3 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 2 | }                      : '}'
+[LEXER] Mode: INITIAL | Depth: 1 | }                      : '}'
+[LEXER] Mode: INITIAL | Depth: 1 | RETURN                 : 'return'
+[LEXER] Mode: INITIAL | Depth: 1 | I_CONSTANT             : '0'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 0 | }                      : '}'
+***parsing successful***
+#global_declarations = 1
+#function_definitions = 1
+#integer_constants = 5
+#pointers_declarations = 5
+#ifs_without_else = 0
+if-else max-depth = 2

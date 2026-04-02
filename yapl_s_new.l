@@ -5,6 +5,7 @@
 %k  284
 %a  1213
 %o  1117
+%option yylineno
 
 O   [0-7]
 D   [0-9]
@@ -28,16 +29,23 @@ WS  [ \t\v\n\f]
 #include <string.h>
 #include "y.tab.h"
 
+
+int yycolumn = 1;
+
+#define YY_USER_ACTION \
+    for (int i = 0; yytext[i] != '\0'; i++) { \
+        if (yytext[i] == '\n') { \
+            yycolumn = 1; \
+        } else { \
+            yycolumn++; \
+        } \
+    }
+
 extern char buff[2048];
 extern int mode;
 extern void yyerror(const char *);  /* prints grammar violation message */
 
-extern int sym_type(const char *);  /* returns type from symbol table */
-
-#define sym_type(identifier) IDENTIFIER /* with no symbol table, fake it */
-
 static void comment(void);
-static int check_type(void);
 
 int state_stack[100];
 int brace_stack[100];
@@ -83,6 +91,8 @@ int peek_state() {
            STATE_NAME, brace_depth, char_val, yytext); \
     return char_val; \
 } while(0)
+
+#define YY_DECL int real_yylex(void)
 
 %}
 
@@ -154,12 +164,11 @@ int peek_state() {
     }
 }
 
-{L}{A}* { 
-    int type = check_type();
-    printf("[LEXER] Mode: %-7s | Depth: %d | %-22s : '%s'\n", 
-           STATE_NAME, brace_depth, 
-           type == IDENTIFIER ? "IDENTIFIER" : "TYPEDEF_NAME", yytext);
-    return type; 
+{L}{A}* {
+    printf("[LEXER] Mode: %-7s | Depth: %d | %-22s : '%s'\n",
+           STATE_NAME, brace_depth,
+           "IDENTIFIER", yytext);
+    return IDENTIFIER;
 }
 
 {HP}{H}+{IS}?				{ PRINT_TOK(I_CONSTANT); }
@@ -225,7 +234,6 @@ int peek_state() {
 ">"					{ PRINT_CHAR('>'); }
 "^"					{ PRINT_CHAR('^'); }
 "|"					{ PRINT_CHAR('|'); }
-"?"					{ PRINT_CHAR('?'); }
 "@"                 { PRINT_CHAR('@'); } 
 
 {WS}+					{ /* whitespace separates tokens */ }
@@ -256,13 +264,4 @@ static void comment(void)
 	sprintf(buff,"***lexing terminated*** [lexer error]: ill-formed comment");
 	mode=0;
     yyerror(buff);
-}
-
-static int check_type(void)
-{
-    switch (sym_type(yytext))
-    {
-        default:                          /* includes undefined */
-        return IDENTIFIER;
-    }
 }

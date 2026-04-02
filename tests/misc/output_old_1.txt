@@ -1,0 +1,64 @@
+[LEXER] Mode: INITIAL | Depth: 0 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'main'
+[LEXER] Mode: INITIAL | Depth: 0 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 0 | )                      : ')'
+[LEXER] Mode: INITIAL | Depth: 1 | {                      : '{'
+[LEXER] Mode: INITIAL | Depth: 1 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'id'
+[LEXER] Mode: INITIAL | Depth: 1 | =                      : '='
+[LEXER] Mode: INITIAL | Depth: 1 | I_CONSTANT             : '42'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 1 | DOUBLE                 : 'double'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'score'
+[LEXER] Mode: INITIAL | Depth: 1 | =                      : '='
+[LEXER] Mode: INITIAL | Depth: 1 | F_CONSTANT             : '98.5'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 1 | CHAR                   : 'char'
+[LEXER] Mode: INITIAL | Depth: 1 | *                      : '*'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'user'
+[LEXER] Mode: INITIAL | Depth: 1 | =                      : '='
+[LEXER] Mode: INITIAL | Depth: 1 | STRING_LITERAL         : '"Alice"'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 1 | CHAR                   : 'char'
+[LEXER] Mode: INITIAL | Depth: 1 | *                      : '*'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'status'
+[LEXER] Mode: INITIAL | Depth: 1 | =                      : '='
+[LEXER] Mode: FSTRING | Depth: 1 | FSTRING_START          : 'f"'
+[LEXER] Mode: FSTRING | Depth: 1 | STRING_LITERAL_PART    : 'User: '
+[REDUCE] f_string_body -> f_string_body STRING_LITERAL_PART
+[LEXER] Mode: INITIAL | Depth: 0 | INTERPOLATION_START    : '{'
+[LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'user'
+[LEXER] Mode: FSTRING | Depth: 1 | INTERPOLATION_END      : '}'
+[REDUCE] interpolation_block -> INTERPOLATION_START expression INTERPOLATION_END
+[REDUCE] f_string_body -> f_string_body interpolation_block
+[LEXER] Mode: FSTRING | Depth: 1 | STRING_LITERAL_PART    : ' (ID: '
+[REDUCE] f_string_body -> f_string_body STRING_LITERAL_PART
+[LEXER] Mode: INITIAL | Depth: 0 | INTERPOLATION_START    : '{'
+[LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'id'
+[LEXER] Mode: FSTRING | Depth: 1 | INTERPOLATION_END      : '}'
+[REDUCE] interpolation_block -> INTERPOLATION_START expression INTERPOLATION_END
+[REDUCE] f_string_body -> f_string_body interpolation_block
+[LEXER] Mode: FSTRING | Depth: 1 | STRING_LITERAL_PART    : ')'
+[REDUCE] f_string_body -> f_string_body STRING_LITERAL_PART
+[LEXER] Mode: INITIAL | Depth: 1 | FSTRING_END            : '"'
+[REDUCE] f_string_expression -> FSTRING_START f_string_body FSTRING_END
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 1 | CHAR                   : 'char'
+[LEXER] Mode: INITIAL | Depth: 1 | *                      : '*'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'full_msg'
+[LEXER] Mode: INITIAL | Depth: 1 | =                      : '='
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'status'
+[LEXER] Mode: INITIAL | Depth: 1 | @                      : '@'
+[LEXER] Mode: INITIAL | Depth: 1 | STRING_LITERAL         : '" - Status: Active"'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 1 | RETURN                 : 'return'
+[LEXER] Mode: INITIAL | Depth: 1 | I_CONSTANT             : '0'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 0 | }                      : '}'
+***parsing successful***
+#global_declarations = 1
+#function_definitions = 1
+#integer_constants = 2
+#pointers_declarations = 3
+#ifs_without_else = 0
+if-else max-depth = 0

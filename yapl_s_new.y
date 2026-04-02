@@ -67,21 +67,13 @@ int yylex(void) {
 
 %define parse.error verbose
 
-%token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL FUNC_NAME SIZEOF
-%token	PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP TH_OP
-%token	AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
-%token	SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
-%token	XOR_ASSIGN OR_ASSIGN
-%token	TYPEDEF_NAME ENUMERATION_CONSTANT
-
-%token	TYPEDEF EXTERN STATIC AUTO REGISTER INLINE
-%token	CONST RESTRICT VOLATILE
-%token	BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
-%token	COMPLEX IMAGINARY 
-%token	STRUCT UNION ENUM ELLIPSIS
-
-%token	CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
-%token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
+%token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL SIZEOF
+%token	PTR_OP INC_OP DEC_OP LE_OP GE_OP EQ_OP NE_OP TH_OP
+%token	AND_OP OR_OP
+%token	EXTERN
+%token	CHAR SHORT INT LONG FLOAT DOUBLE VOID
+%token	STRUCT
+%token	CASE DEFAULT IF ELSE SWITCH WHILE DO FOR CONTINUE BREAK RETURN
 
 /* YAPL-S Tokens */
 %token  FSTRING_START FSTRING_END INTERPOLATION_START INTERPOLATION_END STRING_LITERAL_PART
@@ -90,7 +82,6 @@ int yylex(void) {
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
 
-%nonassoc LOWER_THAN_LPAREN
 %nonassoc '('
 
 %start translation_unit
@@ -111,7 +102,6 @@ primary_expression
 	| constant { TRACE_REDUCE("primary_expression -> constant"); }
 	| string { TRACE_REDUCE("primary_expression -> string"); }
 	| '(' expression ')' { TRACE_REDUCE("primary_expression -> '(' expression ')'"); }
-	| generic_selection { TRACE_REDUCE("primary_expression -> generic_selection"); }
     | f_string_expression { TRACE_REDUCE("primary_expression -> f_string_expression"); }
 	;
 
@@ -134,30 +124,10 @@ interpolation_block
 constant
 	: I_CONSTANT {int_consts++;} { TRACE_REDUCE("constant -> I_CONSTANT {int_consts++;}"); }
 	| F_CONSTANT { TRACE_REDUCE("constant -> F_CONSTANT"); }
-	| ENUMERATION_CONSTANT { TRACE_REDUCE("constant -> ENUMERATION_CONSTANT"); }
-	;
-
-enumeration_constant
-	: IDENTIFIER { TRACE_REDUCE("enumeration_constant -> IDENTIFIER"); }
 	;
 
 string
 	: STRING_LITERAL { TRACE_REDUCE("string -> STRING_LITERAL"); }
-	| FUNC_NAME { TRACE_REDUCE("string -> FUNC_NAME"); }
-	;
-
-generic_selection
-	: GENERIC '(' assignment_expression ',' generic_assoc_list ')' { TRACE_REDUCE("generic_selection -> GENERIC '(' assignment_expression ',' generic_assoc_list ')'"); }
-	;
-
-generic_assoc_list
-	: generic_association { TRACE_REDUCE("generic_assoc_list -> generic_association"); }
-	| generic_assoc_list ',' generic_association { TRACE_REDUCE("generic_assoc_list -> generic_assoc_list ',' generic_association"); }
-	;
-
-generic_association
-	: type_name ':' assignment_expression { TRACE_REDUCE("generic_association -> type_name ':' assignment_expression"); }
-	| DEFAULT ':' assignment_expression { TRACE_REDUCE("generic_association -> DEFAULT ':' assignment_expression"); }
 	;
 
 postfix_expression
@@ -185,7 +155,6 @@ unary_expression
 	| unary_operator cast_expression { TRACE_REDUCE("unary_expression -> unary_operator cast_expression"); }
 	| SIZEOF unary_expression { TRACE_REDUCE("unary_expression -> SIZEOF unary_expression"); }
 	| SIZEOF '(' type_name ')' { TRACE_REDUCE("unary_expression -> SIZEOF '(' type_name ')'"); }
-	| ALIGNOF '(' type_name ')' { TRACE_REDUCE("unary_expression -> ALIGNOF '(' type_name ')'"); }
 	;
 
 unary_operator
@@ -217,8 +186,6 @@ additive_expression
 
 shift_expression
 	: additive_expression { TRACE_REDUCE("shift_expression -> additive_expression"); }
-	| shift_expression LEFT_OP additive_expression { TRACE_REDUCE("shift_expression -> shift_expression LEFT_OP additive_expression"); }
-	| shift_expression RIGHT_OP additive_expression { TRACE_REDUCE("shift_expression -> shift_expression RIGHT_OP additive_expression"); }
 	;
 
 /* YAPL-S: Concatenation Expression Tier */
@@ -273,21 +240,7 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression { TRACE_REDUCE("assignment_expression -> conditional_expression"); }
-	| unary_expression assignment_operator assignment_expression { TRACE_REDUCE("assignment_expression -> unary_expression assignment_operator assignment_expression"); }
-	;
-
-assignment_operator
-	: '=' { TRACE_REDUCE("assignment_operator -> '='"); }
-	| MUL_ASSIGN { TRACE_REDUCE("assignment_operator -> MUL_ASSIGN"); }
-	| DIV_ASSIGN { TRACE_REDUCE("assignment_operator -> DIV_ASSIGN"); }
-	| MOD_ASSIGN { TRACE_REDUCE("assignment_operator -> MOD_ASSIGN"); }
-	| ADD_ASSIGN { TRACE_REDUCE("assignment_operator -> ADD_ASSIGN"); }
-	| SUB_ASSIGN { TRACE_REDUCE("assignment_operator -> SUB_ASSIGN"); }
-	| LEFT_ASSIGN { TRACE_REDUCE("assignment_operator -> LEFT_ASSIGN"); }
-	| RIGHT_ASSIGN { TRACE_REDUCE("assignment_operator -> RIGHT_ASSIGN"); }
-	| AND_ASSIGN { TRACE_REDUCE("assignment_operator -> AND_ASSIGN"); }
-	| XOR_ASSIGN { TRACE_REDUCE("assignment_operator -> XOR_ASSIGN"); }
-	| OR_ASSIGN { TRACE_REDUCE("assignment_operator -> OR_ASSIGN"); }
+	| unary_expression '=' assignment_expression { TRACE_REDUCE("assignment_expression -> unary_expression '=' assignment_expression"); }
 	;
 
 expression
@@ -302,7 +255,6 @@ constant_expression
 declaration
 	: declaration_specifiers ';' { TRACE_REDUCE("declaration -> declaration_specifiers ';'"); }
 	| declaration_specifiers init_declarator_list ';' { TRACE_REDUCE("declaration -> declaration_specifiers init_declarator_list ';'"); }
-	| static_assert_declaration { TRACE_REDUCE("declaration -> static_assert_declaration"); }
 	;
 
 declaration_specifiers
@@ -310,12 +262,6 @@ declaration_specifiers
 	| storage_class_specifier { TRACE_REDUCE("declaration_specifiers -> storage_class_specifier"); }
 	| type_specifier declaration_specifiers { TRACE_REDUCE("declaration_specifiers -> type_specifier declaration_specifiers"); }
 	| type_specifier { TRACE_REDUCE("declaration_specifiers -> type_specifier"); }
-	| type_qualifier declaration_specifiers { TRACE_REDUCE("declaration_specifiers -> type_qualifier declaration_specifiers"); }
-	| type_qualifier { TRACE_REDUCE("declaration_specifiers -> type_qualifier"); }
-	| function_specifier declaration_specifiers { TRACE_REDUCE("declaration_specifiers -> function_specifier declaration_specifiers"); }
-	| function_specifier { TRACE_REDUCE("declaration_specifiers -> function_specifier"); }
-	| alignment_specifier declaration_specifiers { TRACE_REDUCE("declaration_specifiers -> alignment_specifier declaration_specifiers"); }
-	| alignment_specifier { TRACE_REDUCE("declaration_specifiers -> alignment_specifier"); }
 	;
 
 init_declarator_list
@@ -329,12 +275,7 @@ init_declarator
 	;
 
 storage_class_specifier
-	: TYPEDEF { TRACE_REDUCE("storage_class_specifier -> TYPEDEF"); }
-	| EXTERN { TRACE_REDUCE("storage_class_specifier -> EXTERN"); }
-	| STATIC { TRACE_REDUCE("storage_class_specifier -> STATIC"); }
-	| THREAD_LOCAL { TRACE_REDUCE("storage_class_specifier -> THREAD_LOCAL"); }
-	| AUTO { TRACE_REDUCE("storage_class_specifier -> AUTO"); }
-	| REGISTER { TRACE_REDUCE("storage_class_specifier -> REGISTER"); }
+	: EXTERN { TRACE_REDUCE("storage_class_specifier -> EXTERN"); }
 	;
 
 type_specifier
@@ -345,26 +286,13 @@ type_specifier
 	| LONG { TRACE_REDUCE("type_specifier -> LONG"); }
 	| FLOAT { TRACE_REDUCE("type_specifier -> FLOAT"); }
 	| DOUBLE { TRACE_REDUCE("type_specifier -> DOUBLE"); }
-	| SIGNED { TRACE_REDUCE("type_specifier -> SIGNED"); }
-	| UNSIGNED { TRACE_REDUCE("type_specifier -> UNSIGNED"); }
-	| BOOL { TRACE_REDUCE("type_specifier -> BOOL"); }
-	| COMPLEX { TRACE_REDUCE("type_specifier -> COMPLEX"); }
-	| IMAGINARY { TRACE_REDUCE("type_specifier -> IMAGINARY"); }
-	| atomic_type_specifier { TRACE_REDUCE("type_specifier -> atomic_type_specifier"); }
 	| struct_or_union_specifier { TRACE_REDUCE("type_specifier -> struct_or_union_specifier"); }
-	| enum_specifier { TRACE_REDUCE("type_specifier -> enum_specifier"); }
-	| TYPEDEF_NAME { TRACE_REDUCE("type_specifier -> TYPEDEF_NAME"); }
 	;
 
 struct_or_union_specifier
-	: struct_or_union '{' struct_declaration_list '}' { TRACE_REDUCE("struct_or_union_specifier -> struct_or_union '{' struct_declaration_list '}'"); }
-	| struct_or_union IDENTIFIER '{' struct_declaration_list '}' { TRACE_REDUCE("struct_or_union_specifier -> struct_or_union IDENTIFIER '{' struct_declaration_list '}'"); }
-	| struct_or_union IDENTIFIER { TRACE_REDUCE("struct_or_union_specifier -> struct_or_union IDENTIFIER"); }
-	;
-
-struct_or_union
-	: STRUCT { TRACE_REDUCE("struct_or_union -> STRUCT"); }
-	| UNION { TRACE_REDUCE("struct_or_union -> UNION"); }
+	: STRUCT '{' struct_declaration_list '}' { TRACE_REDUCE("struct_or_union_specifier -> STRUCT '{' struct_declaration_list '}'"); }
+	| STRUCT IDENTIFIER '{' struct_declaration_list '}' { TRACE_REDUCE("struct_or_union_specifier -> STRUCT IDENTIFIER '{' struct_declaration_list '}'"); }
+	| STRUCT IDENTIFIER { TRACE_REDUCE("struct_or_union_specifier -> STRUCT IDENTIFIER"); }
 	;
 
 struct_declaration_list
@@ -375,14 +303,11 @@ struct_declaration_list
 struct_declaration
 	: specifier_qualifier_list ';' { TRACE_REDUCE("struct_declaration -> specifier_qualifier_list ';'"); }
 	| specifier_qualifier_list struct_declarator_list ';' { TRACE_REDUCE("struct_declaration -> specifier_qualifier_list struct_declarator_list ';'"); }
-	| static_assert_declaration { TRACE_REDUCE("struct_declaration -> static_assert_declaration"); }
 	;
 
 specifier_qualifier_list
 	: type_specifier specifier_qualifier_list { TRACE_REDUCE("specifier_qualifier_list -> type_specifier specifier_qualifier_list"); }
 	| type_specifier { TRACE_REDUCE("specifier_qualifier_list -> type_specifier"); }
-	| type_qualifier specifier_qualifier_list { TRACE_REDUCE("specifier_qualifier_list -> type_qualifier specifier_qualifier_list"); }
-	| type_qualifier { TRACE_REDUCE("specifier_qualifier_list -> type_qualifier"); }
 	;
 
 struct_declarator_list
@@ -396,45 +321,6 @@ struct_declarator
 	| declarator { TRACE_REDUCE("struct_declarator -> declarator"); }
 	;
 
-enum_specifier
-	: ENUM '{' enumerator_list '}' { TRACE_REDUCE("enum_specifier -> ENUM '{' enumerator_list '}'"); }
-	| ENUM '{' enumerator_list ',' '}' { TRACE_REDUCE("enum_specifier -> ENUM '{' enumerator_list ',' '}'"); }
-	| ENUM IDENTIFIER '{' enumerator_list '}' { TRACE_REDUCE("enum_specifier -> ENUM IDENTIFIER '{' enumerator_list '}'"); }
-	| ENUM IDENTIFIER '{' enumerator_list ',' '}' { TRACE_REDUCE("enum_specifier -> ENUM IDENTIFIER '{' enumerator_list ',' '}'"); }
-	| ENUM IDENTIFIER { TRACE_REDUCE("enum_specifier -> ENUM IDENTIFIER"); }
-	;
-
-enumerator_list
-	: enumerator { TRACE_REDUCE("enumerator_list -> enumerator"); }
-	| enumerator_list ',' enumerator { TRACE_REDUCE("enumerator_list -> enumerator_list ',' enumerator"); }
-	;
-
-enumerator
-	: enumeration_constant '=' constant_expression { TRACE_REDUCE("enumerator -> enumeration_constant '=' constant_expression"); }
-	| enumeration_constant { TRACE_REDUCE("enumerator -> enumeration_constant"); }
-	;
-
-atomic_type_specifier
-	: ATOMIC '(' type_name ')' { TRACE_REDUCE("atomic_type_specifier -> ATOMIC '(' type_name ')'"); }
-	;
-
-type_qualifier
-    : CONST { TRACE_REDUCE("type_qualifier -> CONST"); }
-    | RESTRICT { TRACE_REDUCE("type_qualifier -> RESTRICT"); }
-    | VOLATILE { TRACE_REDUCE("type_qualifier -> VOLATILE"); }
-    | ATOMIC %prec LOWER_THAN_LPAREN { TRACE_REDUCE("type_qualifier -> ATOMIC %prec LOWER_THAN_LPAREN"); }
-    ;
-
-function_specifier
-	: INLINE { TRACE_REDUCE("function_specifier -> INLINE"); }
-	| NORETURN { TRACE_REDUCE("function_specifier -> NORETURN"); }
-	;
-
-alignment_specifier
-	: ALIGNAS '(' type_name ')' { TRACE_REDUCE("alignment_specifier -> ALIGNAS '(' type_name ')'"); }
-	| ALIGNAS '(' constant_expression ')' { TRACE_REDUCE("alignment_specifier -> ALIGNAS '(' constant_expression ')'"); }
-	;
-
 declarator
     : pointer direct_declarator {pointer_decls++;} { TRACE_REDUCE("declarator -> pointer direct_declarator {pointer_decls++;}"); }
     | direct_declarator { TRACE_REDUCE("declarator -> direct_declarator"); }
@@ -445,12 +331,6 @@ direct_declarator
 	| '(' declarator ')' { TRACE_REDUCE("direct_declarator -> '(' declarator ')'"); }
 	| direct_declarator '[' ']' { TRACE_REDUCE("direct_declarator -> direct_declarator '[' ']'"); }
 	| direct_declarator '[' '*' ']' { TRACE_REDUCE("direct_declarator -> direct_declarator '[' '*' ']'"); }
-	| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']' { TRACE_REDUCE("direct_declarator -> direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'"); }
-	| direct_declarator '[' STATIC assignment_expression ']' { TRACE_REDUCE("direct_declarator -> direct_declarator '[' STATIC assignment_expression ']'"); }
-	| direct_declarator '[' type_qualifier_list '*' ']' { TRACE_REDUCE("direct_declarator -> direct_declarator '[' type_qualifier_list '*' ']'"); }
-	| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']' { TRACE_REDUCE("direct_declarator -> direct_declarator '[' type_qualifier_list STATIC assignment_expression ']'"); }
-	| direct_declarator '[' type_qualifier_list assignment_expression ']' { TRACE_REDUCE("direct_declarator -> direct_declarator '[' type_qualifier_list assignment_expression ']'"); }
-	| direct_declarator '[' type_qualifier_list ']' { TRACE_REDUCE("direct_declarator -> direct_declarator '[' type_qualifier_list ']'"); }
 	| direct_declarator '[' assignment_expression ']' { TRACE_REDUCE("direct_declarator -> direct_declarator '[' assignment_expression ']'"); }
 	| direct_declarator '(' parameter_type_list ')' { TRACE_REDUCE("direct_declarator -> direct_declarator '(' parameter_type_list ')'"); }
 	| direct_declarator '(' ')' { TRACE_REDUCE("direct_declarator -> direct_declarator '(' ')'"); }
@@ -458,20 +338,12 @@ direct_declarator
 	;
 
 pointer
-	: '*' type_qualifier_list pointer { TRACE_REDUCE("pointer -> '*' type_qualifier_list pointer"); }
-	| '*' type_qualifier_list { TRACE_REDUCE("pointer -> '*' type_qualifier_list"); }
-	| '*' pointer { TRACE_REDUCE("pointer -> '*' pointer"); }
+	: '*' pointer { TRACE_REDUCE("pointer -> '*' pointer"); }
 	| '*' { TRACE_REDUCE("pointer -> '*'"); }
 	;
 
-type_qualifier_list
-	: type_qualifier { TRACE_REDUCE("type_qualifier_list -> type_qualifier"); }
-	| type_qualifier_list type_qualifier { TRACE_REDUCE("type_qualifier_list -> type_qualifier_list type_qualifier"); }
-	;
-
 parameter_type_list
-	: parameter_list ',' ELLIPSIS { TRACE_REDUCE("parameter_type_list -> parameter_list ',' ELLIPSIS"); }
-	| parameter_list { TRACE_REDUCE("parameter_type_list -> parameter_list"); }
+	: parameter_list { TRACE_REDUCE("parameter_type_list -> parameter_list"); }
 	;
 
 parameter_list
@@ -505,19 +377,9 @@ direct_abstract_declarator
 	: '(' abstract_declarator ')' { TRACE_REDUCE("direct_abstract_declarator -> '(' abstract_declarator ')'"); }
 	| '[' ']' { TRACE_REDUCE("direct_abstract_declarator -> '[' ']'"); }
 	| '[' '*' ']' { TRACE_REDUCE("direct_abstract_declarator -> '[' '*' ']'"); }
-	| '[' STATIC type_qualifier_list assignment_expression ']' { TRACE_REDUCE("direct_abstract_declarator -> '[' STATIC type_qualifier_list assignment_expression ']'"); }
-	| '[' STATIC assignment_expression ']' { TRACE_REDUCE("direct_abstract_declarator -> '[' STATIC assignment_expression ']'"); }
-	| '[' type_qualifier_list STATIC assignment_expression ']' { TRACE_REDUCE("direct_abstract_declarator -> '[' type_qualifier_list STATIC assignment_expression ']'"); }
-	| '[' type_qualifier_list assignment_expression ']' { TRACE_REDUCE("direct_abstract_declarator -> '[' type_qualifier_list assignment_expression ']'"); }
-	| '[' type_qualifier_list ']' { TRACE_REDUCE("direct_abstract_declarator -> '[' type_qualifier_list ']'"); }
 	| '[' assignment_expression ']' { TRACE_REDUCE("direct_abstract_declarator -> '[' assignment_expression ']'"); }
 	| direct_abstract_declarator '[' ']' { TRACE_REDUCE("direct_abstract_declarator -> direct_abstract_declarator '[' ']'"); }
 	| direct_abstract_declarator '[' '*' ']' { TRACE_REDUCE("direct_abstract_declarator -> direct_abstract_declarator '[' '*' ']'"); }
-	| direct_abstract_declarator '[' STATIC type_qualifier_list assignment_expression ']' { TRACE_REDUCE("direct_abstract_declarator -> direct_abstract_declarator '[' STATIC type_qualifier_list assignment_expression ']'"); }
-	| direct_abstract_declarator '[' STATIC assignment_expression ']' { TRACE_REDUCE("direct_abstract_declarator -> direct_abstract_declarator '[' STATIC assignment_expression ']'"); }
-	| direct_abstract_declarator '[' type_qualifier_list assignment_expression ']' { TRACE_REDUCE("direct_abstract_declarator -> direct_abstract_declarator '[' type_qualifier_list assignment_expression ']'"); }
-	| direct_abstract_declarator '[' type_qualifier_list STATIC assignment_expression ']' { TRACE_REDUCE("direct_abstract_declarator -> direct_abstract_declarator '[' type_qualifier_list STATIC assignment_expression ']'"); }
-	| direct_abstract_declarator '[' type_qualifier_list ']' { TRACE_REDUCE("direct_abstract_declarator -> direct_abstract_declarator '[' type_qualifier_list ']'"); }
 	| direct_abstract_declarator '[' assignment_expression ']' { TRACE_REDUCE("direct_abstract_declarator -> direct_abstract_declarator '[' assignment_expression ']'"); }
 	| '(' ')' { TRACE_REDUCE("direct_abstract_declarator -> '(' ')'"); }
 	| '(' parameter_type_list ')' { TRACE_REDUCE("direct_abstract_declarator -> '(' parameter_type_list ')'"); }
@@ -550,10 +412,6 @@ designator_list
 designator
 	: '[' constant_expression ']' { TRACE_REDUCE("designator -> '[' constant_expression ']'"); }
 	| '.' IDENTIFIER { TRACE_REDUCE("designator -> '.' IDENTIFIER"); }
-	;
-
-static_assert_declaration
-	: STATIC_ASSERT '(' constant_expression ',' STRING_LITERAL ')' ';' { TRACE_REDUCE("static_assert_declaration -> STATIC_ASSERT '(' constant_expression ',' STRING_LITERAL ')' ';'"); }
 	;
 
 statement
@@ -593,9 +451,13 @@ expression_statement
 
 selection_statement
     : IF '(' expression ')' statement ELSE {ladder_len++;$6=(ladder_len-1);} statement {if(ladder_len>=max){max=ladder_len;} ladder_len=$6;} { TRACE_REDUCE("selection_statement -> IF '(' expression ')' statement ELSE {ladder_len++;$6=(ladder_len-1);} statement {if(ladder_len>=max){max=ladder_len;} ladder_len=$6;}"); }
-    | IF '(' expression ')' statement %prec LOWER_THAN_ELSE {ifs_wo_else++;} { TRACE_REDUCE("selection_statement -> IF '(' expression ')' statement %prec LOWER_THAN_ELSE {ifs_wo_else++;}"); }
+	| if_without_else { TRACE_REDUCE("selection_statement -> if_without_else"); }
     | SWITCH '(' expression ')' statement { TRACE_REDUCE("selection_statement -> SWITCH '(' expression ')' statement"); }
     ;
+
+if_without_else
+	: IF '(' expression ')' statement %prec LOWER_THAN_ELSE {ifs_wo_else++; TRACE_REDUCE("if_without_else -> IF '(' expression ')' statement %prec LOWER_THAN_ELSE"); }
+	;
 
 iteration_statement
 	: WHILE '(' expression ')' statement { TRACE_REDUCE("iteration_statement -> WHILE '(' expression ')' statement"); }
@@ -607,8 +469,7 @@ iteration_statement
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';' { TRACE_REDUCE("jump_statement -> GOTO IDENTIFIER ';'"); }
-	| CONTINUE ';' { TRACE_REDUCE("jump_statement -> CONTINUE ';'"); }
+	: CONTINUE ';' { TRACE_REDUCE("jump_statement -> CONTINUE ';'"); }
 	| BREAK ';' { TRACE_REDUCE("jump_statement -> BREAK ';'"); }
 	| RETURN ';' { TRACE_REDUCE("jump_statement -> RETURN ';'"); }
 	| RETURN expression ';' { TRACE_REDUCE("jump_statement -> RETURN expression ';'"); }
