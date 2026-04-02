@@ -48,13 +48,13 @@ yapl_s/
 ├── yapl_s            # Legacy compiler executable
 ├── yapl_s_new        # Enhanced compiler executable
 ├── README.md         # This file
-├── docs/
-│   └── parser_analysis/
-│       ├── parsing_table_old.html
-│       ├── parsing_table_new.html
-│       ├── yapl_s.output
-│       ├── yapl_s_new.output
-│       └── adversarial_tests/
+├── docs/             # Supporting docs and manuals
+├── parser_analysis/
+│   ├── parsing_table_old.html          # Parsing table old
+│   ├── parsing_table_new.html          # Parsing table new
+│   ├── yapl_s.output                   # Verbose Yacc output of legacy compiler
+│   ├── yapl_s_new.output               # Verbose Yacc output of new compiler
+│   └── adversarial_tests/              # Adversarial tests for conflicts
 ├── yapl/             # Original YAPL language reference
 │   ├── yapl.y        # Original YAPL grammar
 │   └── yapl.l        # Original YAPL lexer
@@ -62,7 +62,6 @@ yapl_s/
     ├── positive/
     ├── negative/
     └── misc/
-
 ```
 
 ## Building
