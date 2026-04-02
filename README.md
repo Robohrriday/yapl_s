@@ -2,16 +2,22 @@
 
 ## Overview
 
-YAPL-S is an extension of the YAPL (Yet Another Programming Language) taught in **CS327: Compilers at IIT Gandhinagar**. This project implements a compiler for YAPL-S using **Lex** and **Yacc**, adding support for **F-strings** (formatted string literals) with interpolation capabilities.
+YAPL-S is an extension of the YAPL (Yet Another Programming Language) taught in **CS327: Compilers at IIT Gandhinagar**. This project implements compilers for YAPL-S using **Lex** and **Yacc**, adding support for **F-strings** (formatted string literals) and **native string concatenation** using `@`.
+
+This repository currently maintains two compiler pipelines:
+- **Legacy pipeline**: `yapl_s.l` + `yapl_s.y` -> `yapl_s`
+- **Enhanced pipeline**: `yapl_s_new.l` + `yapl_s_new.y` -> `yapl_s_new`
+
+The enhanced pipeline includes improved diagnostics and reverse-derivation-tree generation.
 
 ## Features
 
 ### Core Language Features
 - **C-like Syntax**: Based on standard C grammar with proper declarations, functions, and control flow
-- **Data Types**: Support for integers, floats, chars, strings, pointers, and composite types (struct, union, enum)
-- **Control Flow**: if/else, switch/case, while, do-while, for loops, goto, break, continue
+- **Data Types**: Support for integers, floats, chars, strings, pointers, and struct-based composite declarations
+- **Control Flow**: if/else, switch/case, while, do-while, for loops, break, continue, return
 - **Functions**: Function declarations and definitions with parameter passing
-- **Type Qualifiers**: const, restrict, volatile, static, extern, auto, register, inline
+- **Declaration Support**: External declarations and standard initializer/declarator forms
 
 ### YAPL-S Extensions
 - **F-Strings (Formatted Strings)**: Enhanced string literals with embedded expressions
@@ -21,32 +27,41 @@ YAPL-S is an extension of the YAPL (Yet Another Programming Language) taught in 
   
 - **String Concatenation**: The `@` operator for string concatenation
   - Syntax: `string1 @ string2`
-  - Works with f-strings and pointer arithmetic
+  - Precedence inserted between shift and relational tiers
 
-- **Lexical State Management**: Specialized lexer states for handling f-string parsing with brace depth tracking for nested structures
+- **Lexical State Management**: Specialized lexer states for handling f-string parsing with brace-depth tracking for nested structures
+
+### Enhanced Compiler Outputs (`yapl_s_new`)
+- Reverse derivation trace capture using `TRACE_REDUCE`
+- DOT export (`derivation_tree.dot`) and optional SVG generation during tests
+- Improved parse error diagnostics with line/column context
 
 ## Project Structure
 
 ```
 yapl_s/
-├── yapl_s.y          # Yacc grammar file defining YAPL-S syntax
-├── yapl_s.l          # Lex lexical analyzer file
-├── y.tab.c           # Generated parser (from yacc)
-├── y.tab.h           # Generated parser header
-├── lex.yy.c          # Generated lexer (from lex)
+├── yapl_s.y          # Legacy Yacc grammar
+├── yapl_s.l          # Legacy Lex lexer
+├── yapl_s_new.y      # Enhanced Yacc grammar
+├── yapl_s_new.l      # Enhanced Lex lexer
 ├── Makefile          # Build and test automation
-├── yapl_s            # Compiled executable
+├── yapl_s            # Legacy compiler executable
+├── yapl_s_new        # Enhanced compiler executable
 ├── README.md         # This file
-├── docs/             # Documentation files
-│   ├── yapl-s.pdf    # YAPL-S language specification
-│   └── y_man.pdf     # Yacc/Bison manual reference
+├── docs/
+│   └── parser_analysis/
+│       ├── parsing_table_old.html
+│       ├── parsing_table_new.html
+│       ├── yapl_s.output
+│       ├── yapl_s_new.output
+│       └── adversarial_tests/
 ├── yapl/             # Original YAPL language reference
 │   ├── yapl.y        # Original YAPL grammar
 │   └── yapl.l        # Original YAPL lexer
 └── tests/
-    ├── positive/     # Valid YAPL-S programs (6 test cases)
-    ├── negative/     # Invalid programs for error handling (4 test cases)
-    └── misc/         # Miscellaneous test cases (5 test cases)
+    ├── positive/
+    ├── negative/
+    └── misc/
 
 ```
 
@@ -60,16 +75,25 @@ yapl_s/
 
 ### Compilation
 
-Build the compiler using Make:
+Build both compilers:
 
 ```bash
-make
+make all
 ```
 
-This will:
-1. Generate the parser from `yapl_s.y` using yacc
-2. Generate the lexer from `yapl_s.l` using lex
-3. Compile everything with GCC (with `-O3` optimization)
+Build only legacy compiler:
+
+```bash
+make yapl_s
+```
+
+Build only enhanced compiler:
+
+```bash
+make yapl_s_new
+```
+
+The Makefile keeps old/new generated artifacts separate (`old_*`, `new_*`) and compiles both with `-O3`.
 
 ### Cleaning
 
@@ -83,16 +107,19 @@ make clean
 
 ### Basic Syntax
 
-Run the compiler on a YAPL-S source file:
+Run the legacy compiler:
 
 ```bash
 ./yapl_s input_file.c
 ```
 
-The compiler outputs lexical and parser analysis information to stdout, including:
-- Lexer tokens with their values and context
-- Parser reduction rules (when debug mode is enabled)
-- Grammar analysis information
+Run the enhanced compiler:
+
+```bash
+./yapl_s_new input_file.c
+```
+
+`yapl_s_new` additionally generates reverse derivation tree artifacts used for DOT/SVG visualization.
 
 ### Example Programs
 
@@ -137,8 +164,11 @@ make test
 
 This will:
 - Run all `.c` files in `tests/positive/`, `tests/negative/`, and `tests/misc/`
-- Execute each test with: `./yapl_s test_file.c > output_file.txt`
-- Generate output files for comparison and validation
+- Run with **both** compilers (`test_old` + `test_new`)
+- Store outputs separately as:
+  - `output_old_<id>.txt`
+  - `output_new_<id>.txt`
+- For `yapl_s_new`, generate `tree_new_<id>.svg` when `derivation_tree.dot` is produced
 
 ### Test Categories
 
@@ -148,6 +178,6 @@ This will:
 
 ## Notes
 
-- The compiler focuses on parsing and lexical analysis; no code generation or compilation to machine code
-- Output primarily consists of analysis information useful for debugging and understanding program structure
-- The f-string implementation handles complex nesting scenarios and proper escape sequence handling
+- These compilers focus on lexical analysis and parsing; there is no machine-code generation backend
+- The architecture and conflict-analysis discussion are documented in `yapl-s-latest.pdf`
+- Current grammar/lexer implementations are synchronized with the supported subset policy from the report appendices
