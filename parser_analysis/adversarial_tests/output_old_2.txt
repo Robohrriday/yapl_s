@@ -1,0 +1,27 @@
+[LEXER] Mode: INITIAL | Depth: 0 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'main'
+[LEXER] Mode: INITIAL | Depth: 0 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 0 | )                      : ')'
+[LEXER] Mode: INITIAL | Depth: 1 | {                      : '{'
+[LEXER] Mode: INITIAL | Depth: 1 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 1 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 1 | *                      : '*'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'function_ptr'
+[LEXER] Mode: INITIAL | Depth: 1 | )                      : ')'
+[LEXER] Mode: INITIAL | Depth: 1 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 1 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 1 | ,                      : ','
+[LEXER] Mode: INITIAL | Depth: 1 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 1 | )                      : ')'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 1 | RETURN                 : 'return'
+[LEXER] Mode: INITIAL | Depth: 1 | I_CONSTANT             : '0'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 0 | }                      : '}'
+***parsing successful***
+#global_declarations = 1
+#function_definitions = 1
+#integer_constants = 1
+#pointers_declarations = 1
+#ifs_without_else = 0
+if-else max-depth = 0

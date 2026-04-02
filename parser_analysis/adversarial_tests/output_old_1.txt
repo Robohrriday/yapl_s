@@ -1,0 +1,9 @@
+[LEXER] Mode: INITIAL | Depth: 0 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'main'
+[LEXER] Mode: INITIAL | Depth: 0 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 0 | )                      : ')'
+[LEXER] Mode: INITIAL | Depth: 1 | {                      : '{'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : '_Atomic'
+[LEXER] Mode: INITIAL | Depth: 1 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 1 | INT                    : 'int'
+***parsing terminated*** [syntax error]

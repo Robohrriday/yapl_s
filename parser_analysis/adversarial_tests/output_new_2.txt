@@ -1,0 +1,23 @@
+[LEXER] Mode: INITIAL | Depth: 0 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 0 | IDENTIFIER             : 'main'
+[LEXER] Mode: INITIAL | Depth: 0 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 0 | )                      : ')'
+[LEXER] Mode: INITIAL | Depth: 1 | {                      : '{'
+[LEXER] Mode: INITIAL | Depth: 1 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 1 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 1 | *                      : '*'
+[LEXER] Mode: INITIAL | Depth: 1 | IDENTIFIER             : 'function_ptr'
+[LEXER] Mode: INITIAL | Depth: 1 | )                      : ')'
+[LEXER] Mode: INITIAL | Depth: 1 | (                      : '('
+[LEXER] Mode: INITIAL | Depth: 1 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 1 | ,                      : ','
+[LEXER] Mode: INITIAL | Depth: 1 | INT                    : 'int'
+[LEXER] Mode: INITIAL | Depth: 1 | )                      : ')'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 1 | RETURN                 : 'return'
+[LEXER] Mode: INITIAL | Depth: 1 | I_CONSTANT             : '0'
+[LEXER] Mode: INITIAL | Depth: 1 | ;                      : ';'
+[LEXER] Mode: INITIAL | Depth: 0 | }                      : '}'
+
+======================================================
+***parsing successful***
