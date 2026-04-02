@@ -6,13 +6,6 @@
 #include <ctype.h>
 
 extern char *yytext;
-int global_declarations=0;
-int func_definitions=0;
-int int_consts=0;
-int pointer_decls=0;
-int ifs_wo_else=0;
-int ladder_len=0,hold=0;
-int max=-1;
 
 #define MAX_DERIVATION_STEPS 10000
 char* derivation_tree[MAX_DERIVATION_STEPS];
@@ -122,7 +115,7 @@ interpolation_block
     ;
 
 constant
-	: I_CONSTANT {int_consts++;} { TRACE_REDUCE("constant -> I_CONSTANT {int_consts++;}"); }
+	: I_CONSTANT { TRACE_REDUCE("constant -> I_CONSTANT"); }
 	| F_CONSTANT { TRACE_REDUCE("constant -> F_CONSTANT"); }
 	;
 
@@ -322,7 +315,7 @@ struct_declarator
 	;
 
 declarator
-    : pointer direct_declarator {pointer_decls++;} { TRACE_REDUCE("declarator -> pointer direct_declarator {pointer_decls++;}"); }
+    : pointer direct_declarator { TRACE_REDUCE("declarator -> pointer direct_declarator"); }
     | direct_declarator { TRACE_REDUCE("declarator -> direct_declarator"); }
     ;
 
@@ -450,14 +443,26 @@ expression_statement
 	;
 
 selection_statement
-    : IF '(' expression ')' statement ELSE {ladder_len++;$6=(ladder_len-1);} statement {if(ladder_len>=max){max=ladder_len;} ladder_len=$6;} { TRACE_REDUCE("selection_statement -> IF '(' expression ')' statement ELSE {ladder_len++;$6=(ladder_len-1);} statement {if(ladder_len>=max){max=ladder_len;} ladder_len=$6;}"); }
-	| if_without_else { TRACE_REDUCE("selection_statement -> if_without_else"); }
-    | SWITCH '(' expression ')' statement { TRACE_REDUCE("selection_statement -> SWITCH '(' expression ')' statement"); }
+    : IF '(' expression ')' statement ELSE statement 
+        { 
+            TRACE_REDUCE("selection_statement -> IF '(' expression ')' statement ELSE statement"); 
+        }
+    | if_without_else 
+        { 
+            TRACE_REDUCE("selection_statement -> if_without_else"); 
+        }
+    | SWITCH '(' expression ')' statement 
+        { 
+            TRACE_REDUCE("selection_statement -> SWITCH '(' expression ')' statement"); 
+        }
     ;
 
 if_without_else
-	: IF '(' expression ')' statement %prec LOWER_THAN_ELSE {ifs_wo_else++; TRACE_REDUCE("if_without_else -> IF '(' expression ')' statement %prec LOWER_THAN_ELSE"); }
-	;
+    : IF '(' expression ')' statement %prec LOWER_THAN_ELSE 
+        {
+            TRACE_REDUCE("if_without_else -> IF '(' expression ')' statement"); 
+        }
+    ;
 
 iteration_statement
 	: WHILE '(' expression ')' statement { TRACE_REDUCE("iteration_statement -> WHILE '(' expression ')' statement"); }
@@ -476,12 +481,12 @@ jump_statement
 	;
 
 translation_unit
-	: external_declaration {global_declarations++;} { TRACE_REDUCE("translation_unit -> external_declaration {global_declarations++;}"); }
-	| translation_unit external_declaration {global_declarations++;} { TRACE_REDUCE("translation_unit -> translation_unit external_declaration {global_declarations++;}"); }
+	: external_declaration { TRACE_REDUCE("translation_unit -> external_declaration"); }
+	| translation_unit external_declaration { TRACE_REDUCE("translation_unit -> translation_unit external_declaration"); }
 	;
 
 external_declaration
-	: function_definition {func_definitions++;} { TRACE_REDUCE("external_declaration -> function_definition {func_definitions++;}"); }
+	: function_definition { TRACE_REDUCE("external_declaration -> function_definition"); }
 	| declaration { TRACE_REDUCE("external_declaration -> declaration"); }
 	;
 
@@ -740,12 +745,6 @@ int main(int argc, char **argv)
 	}
 
 	printf("***parsing successful***\n");
-	printf("#global_declarations = %d\n",global_declarations);
-	printf("#function_definitions = %d\n",func_definitions);
-	printf("#integer_constants = %d\n",int_consts);
-	printf("#pointers_declarations = %d\n",pointer_decls);
-	printf("#ifs_without_else = %d\n",ifs_wo_else);
-	printf("if-else max-depth = %d\n",((max<0)?0:max));
 
 	return(0);
 }

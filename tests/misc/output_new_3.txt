@@ -44,9 +44,3 @@
 
 ======================================================
 ***parsing successful***
-#global_declarations = 1
-#function_definitions = 1
-#integer_constants = 3
-#pointers_declarations = 4
-#ifs_without_else = 0
-if-else max-depth = 0
