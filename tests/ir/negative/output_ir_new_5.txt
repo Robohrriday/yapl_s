@@ -1,0 +1,9 @@
+
+======================================================
+                 COMPILER ERROR                       
+======================================================
+ Location : Line 3, Column 15
+ Token    : '{'
+ Message  : Semantic Error: Redeclaration of function 'compute'
+======================================================
+***parsing terminated*** [syntax error]

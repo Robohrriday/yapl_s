@@ -1,0 +1,28 @@
+
+======================================================
+
+===================== 3AC QUADRUPLES =====================
+#      Op               Arg1             Arg2             Result          
+-----------------------------------------------------------
+0      label                                              main            
+1      =                404                               user_id         
+2      =                3                                 attempts        
+3      =                ""                                t0              
+4      append_str       User                              t0              
+5      append_var       user_id                           t0              
+6      append_str        failed                           t0              
+7      append_var       attempts                          t0              
+8      append_str        times.                           t0              
+9      =                t0                                log             
+10     return           0                                                 
+===========================================================
+
+======================= SYMBOL TABLE =======================
+Scope Level   Name                 Type           Line Declared 
+------------------------------------------------------------
+1             main                 Int            2             
+2             user_id              Int            3             
+2             attempts             Int            3             
+2             log                  Char *         3             
+============================================================
+***parsing successful***

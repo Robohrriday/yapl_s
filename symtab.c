@@ -35,9 +35,39 @@ static const char *symbol_type_name(int type) {
             return "Void";
         case SYM_TYPE_STRUCT:
             return "Struct";
+        case SYM_TYPE_STRING:
+            return "String";
         case SYM_TYPE_UNKNOWN:
         default:
             return "Unknown";
+    }
+}
+
+static void format_type_with_pointer(int type, int pointer_depth, char *out, size_t out_size) {
+    const char *base = symbol_type_name(type);
+    size_t pos = 0U;
+    int i = 0;
+
+    if (out == NULL || out_size == 0U) {
+        return;
+    }
+
+    out[0] = '\0';
+    snprintf(out, out_size, "%s", base);
+    pos = strlen(out);
+
+    if (pointer_depth <= 0) {
+        return;
+    }
+
+    if (pos + 1U < out_size) {
+        out[pos++] = ' ';
+        out[pos] = '\0';
+    }
+
+    for (i = 0; i < pointer_depth && pos + 1U < out_size; ++i) {
+        out[pos++] = '*';
+        out[pos] = '\0';
     }
 }
 
@@ -189,11 +219,15 @@ void symtab_print(void) {
         for (i = 0; i < SYMTAB_BUCKETS; ++i) {
             Symbol *sym = scope->buckets[i];
             while (sym != NULL) {
-                printf("%-13d %-20s %-14s %-14d\n",
+                  {
+                      char type_buf[32];
+                      format_type_with_pointer(sym->type, sym->pointer_depth, type_buf, sizeof(type_buf));
+                      printf("%-13d %-20s %-14s %-14d\n",
                        sym->scope_level,
                        sym->name,
-                       symbol_type_name(sym->type),
+                      type_buf,
                        sym->line_decl);
+                  }
                 printed = 1;
                 sym = sym->next;
             }
@@ -205,11 +239,15 @@ void symtab_print(void) {
         for (i = 0; i < SYMTAB_BUCKETS; ++i) {
             Symbol *sym = scope->buckets[i];
             while (sym != NULL) {
-                printf("%-13d %-20s %-14s %-14d\n",
+                  {
+                      char type_buf[32];
+                      format_type_with_pointer(sym->type, sym->pointer_depth, type_buf, sizeof(type_buf));
+                      printf("%-13d %-20s %-14s %-14d\n",
                        sym->scope_level,
                        sym->name,
-                       symbol_type_name(sym->type),
+                      type_buf,
                        sym->line_decl);
+                  }
                 printed = 1;
                 sym = sym->next;
             }
@@ -223,7 +261,7 @@ void symtab_print(void) {
     printf("============================================================\n");
 }
 
-int insert_symbol(char *name, int type, int line) {
+int insert_symbol(char *name, int type, int pointer_depth, int line) {
     unsigned long bucket = 0UL;
     Symbol *sym = NULL;
 
@@ -247,6 +285,7 @@ int insert_symbol(char *name, int type, int line) {
     }
 
     sym->type = type;
+    sym->pointer_depth = pointer_depth;
     sym->scope_level = g_current_scope->level;
     sym->line_decl = line;
 

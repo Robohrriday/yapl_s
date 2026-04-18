@@ -13,12 +13,14 @@ typedef enum {
     SYM_TYPE_LONG,
     SYM_TYPE_SHORT,
     SYM_TYPE_VOID,
-    SYM_TYPE_STRUCT
+    SYM_TYPE_STRUCT,
+    SYM_TYPE_STRING
 } SymbolType;
 
 typedef struct Symbol {
     char *name;
     int type;
+    int pointer_depth;
     int scope_level;
     int line_decl;
     struct Symbol *next;
@@ -36,7 +38,7 @@ void exit_scope(void);
  * Inserts into the current scope only.
  * Returns 1 on success, 0 if duplicate in current scope or on error.
  */
-int insert_symbol(char *name, int type, int line);
+int insert_symbol(char *name, int type, int pointer_depth, int line);
 
 /*
  * Lookup walks from current scope outward to global scope.

@@ -1,0 +1,9 @@
+
+======================================================
+                 COMPILER ERROR                       
+======================================================
+ Location : Line 4, Column 17
+ Token    : ';'
+ Message  : Semantic Error: Redeclaration of variable 'status'
+======================================================
+***parsing terminated*** [syntax error]

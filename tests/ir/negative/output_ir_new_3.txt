@@ -1,0 +1,9 @@
+
+======================================================
+                 COMPILER ERROR                       
+======================================================
+ Location : Line 5, Column 12
+ Token    : ';'
+ Message  : Semantic Error: Type mismatch in assignment
+======================================================
+***parsing terminated*** [syntax error]

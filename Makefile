@@ -21,7 +21,7 @@ NEW_LEX_C := new_lex.yy.c
 
 SYMTAB_SRC := symtab.c
 
-.PHONY: all clean test test_old test_new
+.PHONY: all clean test test_old test_new test_ir
 
 all: $(OLD_COMPILER) $(NEW_COMPILER)
 
@@ -59,7 +59,7 @@ clean:
 		$(NEW_LEX_C) $(NEW_TAB_H) $(NEW_TAB_C) $(NEW_COMPILER) \
 		derivation_tree.dot y.output y.tab.h lex.yy.c
 
-test: test_old test_new
+test: test_old test_new test_ir
 	@echo "All tests completed"
 
 test_old: $(OLD_COMPILER)
@@ -91,6 +91,26 @@ test_new: $(NEW_COMPILER)
 					./$(NEW_COMPILER) $$test_file > $$dir/output_new_$$test_id.txt; \
 					if [ -f derivation_tree.dot ]; then \
 						dot -Tsvg derivation_tree.dot -o $$dir/tree_new_$$test_id.svg; \
+						rm -f derivation_tree.dot; \
+					fi; \
+				fi; \
+			done; \
+		fi; \
+	done
+
+test_ir: $(NEW_COMPILER)
+	@echo "Running IR tests with $(NEW_COMPILER)"
+	@for dir in tests/ir/positive tests/ir/negative tests/ir/complex; do \
+		if [ -d $$dir ]; then \
+			echo "Testing $$dir..."; \
+			for test_file in $$dir/test*.c; do \
+				if [ -f $$test_file ]; then \
+					base=$$(basename $$test_file .c); \
+					test_id=$${base#test}; \
+					echo "  Running $$dir/test$$test_id.c"; \
+					./$(NEW_COMPILER) $$test_file > $$dir/output_ir_new_$$test_id.txt; \
+					if [ -f derivation_tree.dot ]; then \
+						dot -Tsvg derivation_tree.dot -o $$dir/tree_ir_new_$$test_id.svg; \
 						rm -f derivation_tree.dot; \
 					fi; \
 				fi; \

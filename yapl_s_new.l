@@ -27,6 +27,7 @@ WS  [ \t\v\n\f]
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include "y.tab.h"
 
 
@@ -52,6 +53,27 @@ int brace_stack[100];
 int stack_ptr = 0;
 
 int brace_depth = 0; 
+
+static int lexer_debug_tokens = 0;
+static int lexer_debug_initialized = 0;
+
+static int is_truthy(const char *s) {
+    if (s == NULL || s[0] == '\0') return 0;
+    if (strcmp(s, "1") == 0) return 1;
+    if (strcasecmp(s, "true") == 0) return 1;
+    if (strcasecmp(s, "yes") == 0) return 1;
+    if (strcasecmp(s, "on") == 0) return 1;
+    return 0;
+}
+
+static int lex_debug_enabled(void) {
+    if (!lexer_debug_initialized) {
+        const char *env = getenv("YAPL_LEX_DEBUG");
+        lexer_debug_tokens = is_truthy(env);
+        lexer_debug_initialized = 1;
+    }
+    return lexer_debug_tokens;
+}
 
 void push_state(int s) {
     if (stack_ptr < 100) {
@@ -79,15 +101,17 @@ int peek_state() {
 /* Helper macro to translate the lexer state integer to a string */
 #define STATE_NAME (YY_START == FSTRING ? "FSTRING" : "INITIAL")
 
+#define LEX_DEBUG_PRINT(...) do { if (lex_debug_enabled()) { printf(__VA_ARGS__); } } while(0)
+
 /* DEBUG MACROS FOR PRINTING TOKENS, MODE, AND DEPTH */
 #define PRINT_TOK(tok_name) do { \
-    printf("[LEXER] Mode: %-7s | Depth: %d | %-22s : '%s'\n", \
+    LEX_DEBUG_PRINT("[LEXER] Mode: %-7s | Depth: %d | %-22s : '%s'\n", \
            STATE_NAME, brace_depth, #tok_name, yytext); \
     return tok_name; \
 } while(0)
 
 #define PRINT_CHAR(char_val) do { \
-    printf("[LEXER] Mode: %-7s | Depth: %d | %-22c : '%s'\n", \
+    LEX_DEBUG_PRINT("[LEXER] Mode: %-7s | Depth: %d | %-22c : '%s'\n", \
            STATE_NAME, brace_depth, char_val, yytext); \
     return char_val; \
 } while(0)
@@ -137,6 +161,12 @@ int peek_state() {
     }
     
     "{{"|"}}" {
+        yylval.sval = strdup(yytext);
+        if (yylval.sval == NULL) {
+            sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing string literal part");
+            mode=0;
+            yyerror(buff);
+        }
         PRINT_TOK(STRING_LITERAL_PART);
     }
     
@@ -148,6 +178,12 @@ int peek_state() {
     }
     
     ([^"{}\\\n]|{ES})+ {
+        yylval.sval = strdup(yytext);
+        if (yylval.sval == NULL) {
+            sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing string literal part");
+            mode=0;
+            yyerror(buff);
+        }
         PRINT_TOK(STRING_LITERAL_PART);
     }
 
@@ -165,16 +201,13 @@ int peek_state() {
 }
 
 {L}{A}* {
-    printf("[LEXER] Mode: %-7s | Depth: %d | %-22s : '%s'\n",
-           STATE_NAME, brace_depth,
-           "IDENTIFIER", yytext);
     yylval.sval = strdup(yytext);
     if (yylval.sval == NULL) {
         sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing identifier");
         mode=0;
         yyerror(buff);
     }
-    return IDENTIFIER;
+    PRINT_TOK(IDENTIFIER);
 }
 
 {HP}{H}+{IS}?				{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing integer constant"); mode=0; yyerror(buff); } PRINT_TOK(I_CONSTANT); }
@@ -189,7 +222,7 @@ int peek_state() {
 {HP}{H}*"."{H}+{P}{FS}?			{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing float constant"); mode=0; yyerror(buff); } PRINT_TOK(F_CONSTANT); }
 {HP}{H}+"."{P}{FS}?			{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing float constant"); mode=0; yyerror(buff); } PRINT_TOK(F_CONSTANT); }
 
-({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+	{ PRINT_TOK(STRING_LITERAL); }
+({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+	{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing string literal"); mode=0; yyerror(buff); } PRINT_TOK(STRING_LITERAL); }
 
 "<=>"					{ PRINT_TOK(TH_OP); }
 "++"					{ PRINT_TOK(INC_OP); }

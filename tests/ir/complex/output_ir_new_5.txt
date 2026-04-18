@@ -1,0 +1,36 @@
+
+======================================================
+
+===================== 3AC QUADRUPLES =====================
+#      Op               Arg1             Arg2             Result          
+-----------------------------------------------------------
+0      label                                              log_event       
+1      return           1                                                 
+2      label                                              main            
+3      =                500                               code            
+4      =                "Auth"                            module          
+5      =                ""                                t0              
+6      append_str       [                                 t0              
+7      append_var       module                            t0              
+8      append_str       ]                                 t0              
+9      =                ""                                t1              
+10     append_str        Failed with code:                   t1              
+11     append_var       code                              t1              
+12     concat           t0               t1               t2              
+13     param            t2                                                
+14     call             log_event        1                t3              
+15     =                t3                                status          
+16     return           status                                            
+===========================================================
+
+======================= SYMBOL TABLE =======================
+Scope Level   Name                 Type           Line Declared 
+------------------------------------------------------------
+1             log_event            Int            2             
+1             message              Char *         2             
+1             main                 Int            6             
+2             module               Char *         7             
+2             code                 Int            7             
+2             status               Int            7             
+============================================================
+***parsing successful***

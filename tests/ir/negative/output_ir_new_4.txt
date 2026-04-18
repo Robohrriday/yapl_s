@@ -1,0 +1,9 @@
+
+======================================================
+                 COMPILER ERROR                       
+======================================================
+ Location : Line 5, Column 15
+ Token    : ';'
+ Message  : Semantic Error: Cannot dereference a non-pointer
+======================================================
+***parsing terminated*** [syntax error]

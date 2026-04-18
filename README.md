@@ -119,6 +119,14 @@ Run the enhanced compiler:
 ./yapl_s_new input_file.c
 ```
 
+Enable lexer token debug output (disabled by default):
+
+```bash
+YAPL_LEX_DEBUG=1 ./yapl_s_new input_file.c
+```
+
+Accepted truthy values for `YAPL_LEX_DEBUG` are: `1`, `true`, `yes`, `on`.
+
 `yapl_s_new` additionally generates reverse derivation tree artifacts used for DOT/SVG visualization.
 
 ### Example Programs
@@ -164,11 +172,20 @@ make test
 
 This will:
 - Run all `.c` files in `tests/positive/`, `tests/negative/`, and `tests/misc/`
+- Run all `.c` files in `tests/ir/positive/`, `tests/ir/negative/`, and `tests/ir/complex/`
 - Run with **both** compilers (`test_old` + `test_new`)
 - Store outputs separately as:
   - `output_old_<id>.txt`
   - `output_new_<id>.txt`
+  - `output_ir_new_<id>.txt`
 - For `yapl_s_new`, generate `tree_new_<id>.svg` when `derivation_tree.dot` is produced
+  - For IR tests, generate `tree_ir_new_<id>.svg`
+
+### Running Only IR Tests
+
+```bash
+make test_ir
+```
 
 ### Test Categories
 

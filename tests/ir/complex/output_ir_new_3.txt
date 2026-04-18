@@ -1,0 +1,52 @@
+
+======================================================
+
+===================== 3AC QUADRUPLES =====================
+#      Op               Arg1             Arg2             Result          
+-----------------------------------------------------------
+0      label                                              main            
+1      =                0                                 sum             
+2      =                0                                 i               
+3      label                                              L0              
+4      <                i                3                t0              
+5      ifFalse          t0               goto             L1              
+6      goto                                               L2              
+7      label                                              L3              
+8      +                i                1                t1              
+9      =                t1                                i               
+10     goto                                               L0              
+11     label                                              L2              
+12     =                0                                 j               
+13     label                                              L4              
+14     <                j                5                t2              
+15     ifFalse          t2               goto             L5              
+16     ==               j                2                t3              
+17     ifFalse          t3               goto             L6              
+18     goto                                               L5              
+19     label                                              L6              
+20     +                sum              1                t4              
+21     =                t4                                sum             
+22     +                j                1                t5              
+23     =                t5                                j               
+24     goto                                               L4              
+25     label                                              L5              
+26     ==               i                1                t6              
+27     ifFalse          t6               goto             L8              
+28     goto                                               L3              
+29     label                                              L8              
+30     +                sum              10               t7              
+31     =                t7                                sum             
+32     goto                                               L3              
+33     label                                              L1              
+34     return           sum                                               
+===========================================================
+
+======================= SYMBOL TABLE =======================
+Scope Level   Name                 Type           Line Declared 
+------------------------------------------------------------
+1             main                 Int            2             
+2             sum                  Int            3             
+2             i                    Int            3             
+2             j                    Int            3             
+============================================================
+***parsing successful***

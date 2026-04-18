@@ -1,0 +1,44 @@
+
+======================================================
+
+===================== 3AC QUADRUPLES =====================
+#      Op               Arg1             Arg2             Result          
+-----------------------------------------------------------
+0      label                                              main            
+1      =                1                                 a               
+2      =                0                                 b               
+3      =                1                                 c               
+4      >                a                0                t0              
+5      ifFalse          t0               goto             L0              
+6      >                b                0                t1              
+7      &&               t0               t1               t2              
+8      goto                                               L1              
+9      label                                              L0              
+10     =                0                                 t2              
+11     label                                              L1              
+12     ifTrue           t2               goto             L2              
+13     ==               c                1                t3              
+14     ||               t2               t3               t4              
+15     goto                                               L3              
+16     label                                              L2              
+17     =                1                                 t4              
+18     label                                              L3              
+19     ifFalse          t4               goto             L4              
+20     =                1                                 result          
+21     goto                                               L5              
+22     label                                              L4              
+23     =                0                                 result          
+24     label                                              L5              
+25     return           result                                            
+===========================================================
+
+======================= SYMBOL TABLE =======================
+Scope Level   Name                 Type           Line Declared 
+------------------------------------------------------------
+1             main                 Int            2             
+2             a                    Int            3             
+2             b                    Int            3             
+2             c                    Int            3             
+2             result               Int            3             
+============================================================
+***parsing successful***
