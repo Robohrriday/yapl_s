@@ -168,20 +168,26 @@ int peek_state() {
     printf("[LEXER] Mode: %-7s | Depth: %d | %-22s : '%s'\n",
            STATE_NAME, brace_depth,
            "IDENTIFIER", yytext);
+    yylval.sval = strdup(yytext);
+    if (yylval.sval == NULL) {
+        sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing identifier");
+        mode=0;
+        yyerror(buff);
+    }
     return IDENTIFIER;
 }
 
-{HP}{H}+{IS}?				{ PRINT_TOK(I_CONSTANT); }
-{NZ}{D}*{IS}?				{ PRINT_TOK(I_CONSTANT); }
-"0"{O}*{IS}?				{ PRINT_TOK(I_CONSTANT); }
-{CP}?"'"([^'\\\n]|{ES})+"'"		{ PRINT_TOK(I_CONSTANT); }
+{HP}{H}+{IS}?				{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing integer constant"); mode=0; yyerror(buff); } PRINT_TOK(I_CONSTANT); }
+{NZ}{D}*{IS}?				{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing integer constant"); mode=0; yyerror(buff); } PRINT_TOK(I_CONSTANT); }
+"0"{O}*{IS}?				{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing integer constant"); mode=0; yyerror(buff); } PRINT_TOK(I_CONSTANT); }
+{CP}?"'"([^'\\\n]|{ES})+"'"		{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing integer constant"); mode=0; yyerror(buff); } PRINT_TOK(I_CONSTANT); }
 
-{D}+{E}{FS}?				{ PRINT_TOK(F_CONSTANT); }
-{D}*"."{D}+{E}?{FS}?			{ PRINT_TOK(F_CONSTANT); }
-{D}+"."{E}?{FS}?			{ PRINT_TOK(F_CONSTANT); }
-{HP}{H}+{P}{FS}?			{ PRINT_TOK(F_CONSTANT); }
-{HP}{H}*"."{H}+{P}{FS}?			{ PRINT_TOK(F_CONSTANT); }
-{HP}{H}+"."{P}{FS}?			{ PRINT_TOK(F_CONSTANT); }
+{D}+{E}{FS}?				{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing float constant"); mode=0; yyerror(buff); } PRINT_TOK(F_CONSTANT); }
+{D}*"."{D}+{E}?{FS}?			{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing float constant"); mode=0; yyerror(buff); } PRINT_TOK(F_CONSTANT); }
+{D}+"."{E}?{FS}?			{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing float constant"); mode=0; yyerror(buff); } PRINT_TOK(F_CONSTANT); }
+{HP}{H}+{P}{FS}?			{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing float constant"); mode=0; yyerror(buff); } PRINT_TOK(F_CONSTANT); }
+{HP}{H}*"."{H}+{P}{FS}?			{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing float constant"); mode=0; yyerror(buff); } PRINT_TOK(F_CONSTANT); }
+{HP}{H}+"."{P}{FS}?			{ yylval.sval = strdup(yytext); if (yylval.sval == NULL) { sprintf(buff, "***lexing terminated*** [lexer error]: out of memory while capturing float constant"); mode=0; yyerror(buff); } PRINT_TOK(F_CONSTANT); }
 
 ({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+	{ PRINT_TOK(STRING_LITERAL); }
 

@@ -19,18 +19,20 @@ NEW_TAB_C := new_y.tab.c
 NEW_TAB_H := new_y.tab.h
 NEW_LEX_C := new_lex.yy.c
 
+SYMTAB_SRC := symtab.c
+
 .PHONY: all clean test test_old test_new
 
 all: $(OLD_COMPILER) $(NEW_COMPILER)
 
 $(OLD_COMPILER): $(OLD_TAB_C) $(OLD_LEX_C)
 	@cp -f $(OLD_TAB_H) y.tab.h
-	$(CC) $(CFLAGS) $(OLD_LEX_C) $(OLD_TAB_C) -o $(OLD_COMPILER)
+	$(CC) $(CFLAGS) $(OLD_LEX_C) $(OLD_TAB_C) $(SYMTAB_SRC) -o $(OLD_COMPILER)
 	@echo "Run the program as ./$(OLD_COMPILER) [input_file]"
 
 $(NEW_COMPILER): $(NEW_TAB_C) $(NEW_LEX_C)
 	@cp -f $(NEW_TAB_H) y.tab.h
-	$(CC) $(CFLAGS) $(NEW_LEX_C) $(NEW_TAB_C) -o $(NEW_COMPILER)
+	$(CC) $(CFLAGS) $(NEW_LEX_C) $(NEW_TAB_C) $(SYMTAB_SRC) -o $(NEW_COMPILER)
 	@echo "Run the program as ./$(NEW_COMPILER) [input_file]"
 
 $(OLD_TAB_C) $(OLD_TAB_H): $(OLD_Y)

@@ -4,8 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "symtab.h"
 
 extern char *yytext;
+extern int yylineno;
 
 #define MAX_DERIVATION_STEPS 10000
 char* derivation_tree[MAX_DERIVATION_STEPS];
@@ -46,6 +48,18 @@ char* sanitize_for_dot(const char* str) {
 }
 
 int real_yylex(void);
+void yyerror(const char *s);
+
+typedef struct Quad {
+	char op[16];
+	char arg1[32];
+	char arg2[32];
+	char result[32];
+} Quad;
+
+#define MAX_QUADS 2000
+Quad quad_list[MAX_QUADS];
+int quad_count = 0;
 
 int yylex(void) {
     int tok = real_yylex();
@@ -56,11 +70,73 @@ int yylex(void) {
 }
 
 
+/* --- IR Generation Helper Globals & Stubs --- */
+int temp_count = 0;
+int label_count = 0;
+int current_decl_type = SYM_TYPE_UNKNOWN;
+
+/* Generates a fresh temporary variable (e.g., "t0", "t1") */
+char* newtemp() {
+    char* temp = (char*)malloc(16);
+    sprintf(temp, "t%d", temp_count++);
+    return temp;
+}
+
+/* Generates a fresh label (e.g., "L0", "L1") */
+char* newlabel() {
+    char* label = (char*)malloc(16);
+    sprintf(label, "L%d", label_count++);
+    return label;
+}
+
+/* Emits a Three-Address Code quadruple */
+void emit(const char* op, const char* arg1, const char* arg2, const char* result) {
+	if (quad_count >= MAX_QUADS) {
+		yyerror("Internal Error: Quadruple list overflow");
+	}
+
+	snprintf(quad_list[quad_count].op, sizeof(quad_list[quad_count].op), "%s", op ? op : "");
+	snprintf(quad_list[quad_count].arg1, sizeof(quad_list[quad_count].arg1), "%s", arg1 ? arg1 : "");
+	snprintf(quad_list[quad_count].arg2, sizeof(quad_list[quad_count].arg2), "%s", arg2 ? arg2 : "");
+	snprintf(quad_list[quad_count].result, sizeof(quad_list[quad_count].result), "%s", result ? result : "");
+	quad_count++;
+}
+
+void print_quadruples(void) {
+	int i;
+	printf("\n===================== 3AC QUADRUPLES =====================\n");
+	printf("%-6s %-16s %-16s %-16s %-16s\n", "#", "Op", "Arg1", "Arg2", "Result");
+	printf("-----------------------------------------------------------\n");
+	for (i = 0; i < quad_count; i++) {
+		printf("%-6d %-16s %-16s %-16s %-16s\n",
+			   i,
+			   quad_list[i].op,
+			   quad_list[i].arg1,
+			   quad_list[i].arg2,
+			   quad_list[i].result);
+	}
+	printf("===========================================================\n");
+}
+
+
 %}
+
+%code requires {
+typedef struct Attributes {
+	char place[32];
+	int type;
+	char true_label[32];
+	char false_label[32];
+	char next_label[32];
+	struct TreeNode* node;
+} Attributes;
+}
 
 %define parse.error verbose
 
-%token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL SIZEOF
+%token <sval>	IDENTIFIER
+%token <sval>	I_CONSTANT F_CONSTANT
+%token	STRING_LITERAL SIZEOF
 %token	PTR_OP INC_OP DEC_OP LE_OP GE_OP EQ_OP NE_OP TH_OP
 %token	AND_OP OR_OP
 %token	EXTERN
@@ -82,19 +158,67 @@ int yylex(void) {
 %type <val> IF
 %type <val> ELSE
 
-%union
-{
-	int val;
-	struct symtab *symp;
+/* Assign the SDT attribute struct to our expression and statement branches */
+%type <attr> primary_expression postfix_expression unary_expression
+%type <attr> cast_expression multiplicative_expression additive_expression
+%type <attr> shift_expression concatenation_expression
+%type <attr> and_expression exclusive_or_expression inclusive_or_expression
+%type <attr> relational_expression equality_expression
+%type <attr> logical_and_expression logical_or_expression
+%type <attr> conditional_expression assignment_expression expression
+%type <attr> statement compound_statement selection_statement iteration_statement jump_statement
+%type <attr> declaration init_declarator direct_declarator declarator
+%type <attr> if_head
+
+
+%union {
+    int ival;
+    float fval;
+    char *sval;
+    struct TreeNode *node;
+    Attributes attr;       /* NEW: The SDT attribute bundle */
 }
 
 %%
 
 primary_expression
-	: IDENTIFIER { TRACE_REDUCE("primary_expression -> IDENTIFIER"); }
-	| constant { TRACE_REDUCE("primary_expression -> constant"); }
-	| string { TRACE_REDUCE("primary_expression -> string"); }
-	| '(' expression ')' { TRACE_REDUCE("primary_expression -> '(' expression ')'"); }
+	: IDENTIFIER {
+		Symbol *sym = lookup_symbol($1);
+		if (sym == NULL) {
+			free($1);
+			yyerror("Semantic Error: Undeclared identifier");
+		}
+		$$.type = sym->type;
+		strncpy($$.place, sym->name, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free($1);
+		TRACE_REDUCE("primary_expression -> IDENTIFIER");
+	}
+	| I_CONSTANT {
+		$$.type = SYM_TYPE_INT;
+		strncpy($$.place, $1, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free($1);
+		TRACE_REDUCE("primary_expression -> I_CONSTANT");
+	}
+	| F_CONSTANT {
+		$$.type = SYM_TYPE_FLOAT;
+		strncpy($$.place, $1, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free($1);
+		TRACE_REDUCE("primary_expression -> F_CONSTANT");
+	}
+	| string {
+		$$.type = SYM_TYPE_UNKNOWN;
+		$$.place[0] = '\0';
+		TRACE_REDUCE("primary_expression -> string");
+	}
+	| '(' expression ')' {
+		$$.type = $2.type;
+		strncpy($$.place, $2.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("primary_expression -> '(' expression ')'");
+	}
     | f_string_expression { TRACE_REDUCE("primary_expression -> f_string_expression"); }
 	;
 
@@ -114,26 +238,71 @@ interpolation_block
 
     ;
 
-constant
-	: I_CONSTANT { TRACE_REDUCE("constant -> I_CONSTANT"); }
-	| F_CONSTANT { TRACE_REDUCE("constant -> F_CONSTANT"); }
-	;
-
 string
 	: STRING_LITERAL { TRACE_REDUCE("string -> STRING_LITERAL"); }
 	;
 
 postfix_expression
-	: primary_expression { TRACE_REDUCE("postfix_expression -> primary_expression"); }
-	| postfix_expression '[' expression ']' { TRACE_REDUCE("postfix_expression -> postfix_expression '[' expression ']'"); }
-	| postfix_expression '(' ')' { TRACE_REDUCE("postfix_expression -> postfix_expression '(' ')'"); }
-	| postfix_expression '(' argument_expression_list ')' { TRACE_REDUCE("postfix_expression -> postfix_expression '(' argument_expression_list ')'"); }
-	| postfix_expression '.' IDENTIFIER { TRACE_REDUCE("postfix_expression -> postfix_expression '.' IDENTIFIER"); }
-	| postfix_expression PTR_OP IDENTIFIER { TRACE_REDUCE("postfix_expression -> postfix_expression PTR_OP IDENTIFIER"); }
-	| postfix_expression INC_OP { TRACE_REDUCE("postfix_expression -> postfix_expression INC_OP"); }
-	| postfix_expression DEC_OP { TRACE_REDUCE("postfix_expression -> postfix_expression DEC_OP"); }
-	| '(' type_name ')' '{' initializer_list '}' { TRACE_REDUCE("postfix_expression -> '(' type_name ')' '{' initializer_list '}'"); }
-	| '(' type_name ')' '{' initializer_list ',' '}' { TRACE_REDUCE("postfix_expression -> '(' type_name ')' '{' initializer_list ',' '}'"); }
+	: primary_expression {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("postfix_expression -> primary_expression");
+	}
+	| postfix_expression '[' expression ']' {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("postfix_expression -> postfix_expression '[' expression ']'");
+	}
+	| postfix_expression '(' ')' {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("postfix_expression -> postfix_expression '(' ')'");
+	}
+	| postfix_expression '(' argument_expression_list ')' {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("postfix_expression -> postfix_expression '(' argument_expression_list ')'");
+	}
+	| postfix_expression '.' IDENTIFIER {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free($3);
+		TRACE_REDUCE("postfix_expression -> postfix_expression '.' IDENTIFIER");
+	}
+	| postfix_expression PTR_OP IDENTIFIER {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free($3);
+		TRACE_REDUCE("postfix_expression -> postfix_expression PTR_OP IDENTIFIER");
+	}
+	| postfix_expression INC_OP {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("postfix_expression -> postfix_expression INC_OP");
+	}
+	| postfix_expression DEC_OP {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("postfix_expression -> postfix_expression DEC_OP");
+	}
+	| '(' type_name ')' '{' initializer_list '}' {
+		$$.type = SYM_TYPE_UNKNOWN;
+		$$.place[0] = '\0';
+		TRACE_REDUCE("postfix_expression -> '(' type_name ')' '{' initializer_list '}'");
+	}
+	| '(' type_name ')' '{' initializer_list ',' '}' {
+		$$.type = SYM_TYPE_UNKNOWN;
+		$$.place[0] = '\0';
+		TRACE_REDUCE("postfix_expression -> '(' type_name ')' '{' initializer_list ',' '}'");
+	}
 	;
 
 argument_expression_list
@@ -142,12 +311,40 @@ argument_expression_list
 	;
 
 unary_expression
-	: postfix_expression { TRACE_REDUCE("unary_expression -> postfix_expression"); }
-	| INC_OP unary_expression { TRACE_REDUCE("unary_expression -> INC_OP unary_expression"); }
-	| DEC_OP unary_expression { TRACE_REDUCE("unary_expression -> DEC_OP unary_expression"); }
-	| unary_operator cast_expression { TRACE_REDUCE("unary_expression -> unary_operator cast_expression"); }
-	| SIZEOF unary_expression { TRACE_REDUCE("unary_expression -> SIZEOF unary_expression"); }
-	| SIZEOF '(' type_name ')' { TRACE_REDUCE("unary_expression -> SIZEOF '(' type_name ')'"); }
+	: postfix_expression {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("unary_expression -> postfix_expression");
+	}
+	| INC_OP unary_expression {
+		$$.type = $2.type;
+		strncpy($$.place, $2.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("unary_expression -> INC_OP unary_expression");
+	}
+	| DEC_OP unary_expression {
+		$$.type = $2.type;
+		strncpy($$.place, $2.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("unary_expression -> DEC_OP unary_expression");
+	}
+	| unary_operator cast_expression {
+		$$.type = $2.type;
+		strncpy($$.place, $2.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("unary_expression -> unary_operator cast_expression");
+	}
+	| SIZEOF unary_expression {
+		$$.type = SYM_TYPE_INT;
+		$$.place[0] = '\0';
+		TRACE_REDUCE("unary_expression -> SIZEOF unary_expression");
+	}
+	| SIZEOF '(' type_name ')' {
+		$$.type = SYM_TYPE_INT;
+		$$.place[0] = '\0';
+		TRACE_REDUCE("unary_expression -> SIZEOF '(' type_name ')'");
+	}
 	;
 
 unary_operator
@@ -160,61 +357,270 @@ unary_operator
 	;
 
 cast_expression
-	: unary_expression { TRACE_REDUCE("cast_expression -> unary_expression"); }
-	| '(' type_name ')' cast_expression { TRACE_REDUCE("cast_expression -> '(' type_name ')' cast_expression"); }
+	: unary_expression {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("cast_expression -> unary_expression");
+	}
+	| '(' type_name ')' cast_expression {
+		$$.type = $4.type;
+		strncpy($$.place, $4.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("cast_expression -> '(' type_name ')' cast_expression");
+	}
 	;
 
 multiplicative_expression
-	: cast_expression { TRACE_REDUCE("multiplicative_expression -> cast_expression"); }
-	| multiplicative_expression '*' cast_expression { TRACE_REDUCE("multiplicative_expression -> multiplicative_expression '*' cast_expression"); }
-	| multiplicative_expression '/' cast_expression { TRACE_REDUCE("multiplicative_expression -> multiplicative_expression '/' cast_expression"); }
-	| multiplicative_expression '%' cast_expression { TRACE_REDUCE("multiplicative_expression -> multiplicative_expression '%' cast_expression"); }
+	: cast_expression {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("multiplicative_expression -> cast_expression");
+	}
+	| multiplicative_expression '*' cast_expression {
+		char* t;
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = $1.type;
+		t = newtemp();
+		strncpy($$.place, t, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free(t);
+		emit("*", $1.place, $3.place, $$.place);
+		TRACE_REDUCE("multiplicative_expression -> multiplicative_expression '*' cast_expression");
+	}
+	| multiplicative_expression '/' cast_expression {
+		char* t;
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = $1.type;
+		t = newtemp();
+		strncpy($$.place, t, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free(t);
+		emit("/", $1.place, $3.place, $$.place);
+		TRACE_REDUCE("multiplicative_expression -> multiplicative_expression '/' cast_expression");
+	}
+	| multiplicative_expression '%' cast_expression {
+		char* t;
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = $1.type;
+		t = newtemp();
+		strncpy($$.place, t, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free(t);
+		emit("%", $1.place, $3.place, $$.place);
+		TRACE_REDUCE("multiplicative_expression -> multiplicative_expression '%' cast_expression");
+	}
 	;
 
 additive_expression
-	: multiplicative_expression { TRACE_REDUCE("additive_expression -> multiplicative_expression"); }
-	| additive_expression '+' multiplicative_expression { TRACE_REDUCE("additive_expression -> additive_expression '+' multiplicative_expression"); }
-	| additive_expression '-' multiplicative_expression { TRACE_REDUCE("additive_expression -> additive_expression '-' multiplicative_expression"); }
+	: multiplicative_expression {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("additive_expression -> multiplicative_expression");
+	}
+	| additive_expression '+' multiplicative_expression {
+		char* t;
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = $1.type;
+		t = newtemp();
+		strncpy($$.place, t, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free(t);
+		emit("+", $1.place, $3.place, $$.place);
+		TRACE_REDUCE("additive_expression -> additive_expression '+' multiplicative_expression");
+	}
+	| additive_expression '-' multiplicative_expression {
+		char* t;
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = $1.type;
+		t = newtemp();
+		strncpy($$.place, t, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free(t);
+		emit("-", $1.place, $3.place, $$.place);
+		TRACE_REDUCE("additive_expression -> additive_expression '-' multiplicative_expression");
+	}
 	;
 
 shift_expression
-	: additive_expression { TRACE_REDUCE("shift_expression -> additive_expression"); }
+	: additive_expression {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("shift_expression -> additive_expression");
+	}
 	;
 
 /* YAPL-S: Concatenation Expression Tier */
 concatenation_expression
-    : shift_expression { TRACE_REDUCE("concatenation_expression -> shift_expression"); }
-    | concatenation_expression '@' shift_expression { TRACE_REDUCE("concatenation_expression -> concatenation_expression '@' shift_expression"); }
+	: shift_expression {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("concatenation_expression -> shift_expression");
+	}
+	| concatenation_expression '@' shift_expression {
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = $1.type;
+		$$.place[0] = '\0';
+		TRACE_REDUCE("concatenation_expression -> concatenation_expression '@' shift_expression");
+	}
     ;
 
 relational_expression
-	: concatenation_expression { TRACE_REDUCE("relational_expression -> concatenation_expression"); }
-	| relational_expression '<' concatenation_expression { TRACE_REDUCE("relational_expression -> relational_expression '<' concatenation_expression"); }
-	| relational_expression '>' concatenation_expression { TRACE_REDUCE("relational_expression -> relational_expression '>' concatenation_expression"); }
-	| relational_expression LE_OP concatenation_expression { TRACE_REDUCE("relational_expression -> relational_expression LE_OP concatenation_expression"); }
-	| relational_expression GE_OP concatenation_expression { TRACE_REDUCE("relational_expression -> relational_expression GE_OP concatenation_expression"); }
-	| relational_expression TH_OP concatenation_expression { TRACE_REDUCE("relational_expression -> relational_expression TH_OP concatenation_expression"); }
+	: concatenation_expression {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("relational_expression -> concatenation_expression");
+	}
+	| relational_expression '<' concatenation_expression {
+		char* t;
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = SYM_TYPE_INT;
+		t = newtemp();
+		strncpy($$.place, t, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free(t);
+		emit("<", $1.place, $3.place, $$.place);
+		TRACE_REDUCE("relational_expression -> relational_expression '<' concatenation_expression");
+	}
+	| relational_expression '>' concatenation_expression {
+		char* t;
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = SYM_TYPE_INT;
+		t = newtemp();
+		strncpy($$.place, t, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free(t);
+		emit(">", $1.place, $3.place, $$.place);
+		TRACE_REDUCE("relational_expression -> relational_expression '>' concatenation_expression");
+	}
+	| relational_expression LE_OP concatenation_expression {
+		char* t;
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = SYM_TYPE_INT;
+		t = newtemp();
+		strncpy($$.place, t, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free(t);
+		emit("<=", $1.place, $3.place, $$.place);
+		TRACE_REDUCE("relational_expression -> relational_expression LE_OP concatenation_expression");
+	}
+	| relational_expression GE_OP concatenation_expression {
+		char* t;
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = SYM_TYPE_INT;
+		t = newtemp();
+		strncpy($$.place, t, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free(t);
+		emit(">=", $1.place, $3.place, $$.place);
+		TRACE_REDUCE("relational_expression -> relational_expression GE_OP concatenation_expression");
+	}
+	| relational_expression TH_OP concatenation_expression {
+		char* t;
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = SYM_TYPE_INT;
+		t = newtemp();
+		strncpy($$.place, t, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free(t);
+		emit("<=>", $1.place, $3.place, $$.place);
+		TRACE_REDUCE("relational_expression -> relational_expression TH_OP concatenation_expression");
+	}
 	;
 
 equality_expression
-	: relational_expression { TRACE_REDUCE("equality_expression -> relational_expression"); }
-	| equality_expression EQ_OP relational_expression { TRACE_REDUCE("equality_expression -> equality_expression EQ_OP relational_expression"); }
-	| equality_expression NE_OP relational_expression { TRACE_REDUCE("equality_expression -> equality_expression NE_OP relational_expression"); }
+	: relational_expression {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("equality_expression -> relational_expression");
+	}
+	| equality_expression EQ_OP relational_expression {
+		char* t;
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = SYM_TYPE_INT;
+		t = newtemp();
+		strncpy($$.place, t, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free(t);
+		emit("==", $1.place, $3.place, $$.place);
+		TRACE_REDUCE("equality_expression -> equality_expression EQ_OP relational_expression");
+	}
+	| equality_expression NE_OP relational_expression {
+		char* t;
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in expression");
+		}
+		$$.type = SYM_TYPE_INT;
+		t = newtemp();
+		strncpy($$.place, t, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free(t);
+		emit("!=", $1.place, $3.place, $$.place);
+		TRACE_REDUCE("equality_expression -> equality_expression NE_OP relational_expression");
+	}
 	;
 
 and_expression
-	: equality_expression { TRACE_REDUCE("and_expression -> equality_expression"); }
-	| and_expression '&' equality_expression { TRACE_REDUCE("and_expression -> and_expression '&' equality_expression"); }
+	: equality_expression {
+		$$.type = $1.type;
+		TRACE_REDUCE("and_expression -> equality_expression");
+	}
+	| and_expression '&' equality_expression {
+		$$.type = $1.type;
+		TRACE_REDUCE("and_expression -> and_expression '&' equality_expression");
+	}
 	;
 
 exclusive_or_expression
-	: and_expression { TRACE_REDUCE("exclusive_or_expression -> and_expression"); }
-	| exclusive_or_expression '^' and_expression { TRACE_REDUCE("exclusive_or_expression -> exclusive_or_expression '^' and_expression"); }
+	: and_expression {
+		$$.type = $1.type;
+		TRACE_REDUCE("exclusive_or_expression -> and_expression");
+	}
+	| exclusive_or_expression '^' and_expression {
+		$$.type = $1.type;
+		TRACE_REDUCE("exclusive_or_expression -> exclusive_or_expression '^' and_expression");
+	}
 	;
 
 inclusive_or_expression
-	: exclusive_or_expression { TRACE_REDUCE("inclusive_or_expression -> exclusive_or_expression"); }
-	| inclusive_or_expression '|' exclusive_or_expression { TRACE_REDUCE("inclusive_or_expression -> inclusive_or_expression '|' exclusive_or_expression"); }
+	: exclusive_or_expression {
+		$$.type = $1.type;
+		TRACE_REDUCE("inclusive_or_expression -> exclusive_or_expression");
+	}
+	| inclusive_or_expression '|' exclusive_or_expression {
+		$$.type = $1.type;
+		TRACE_REDUCE("inclusive_or_expression -> inclusive_or_expression '|' exclusive_or_expression");
+	}
 	;
 
 logical_and_expression
@@ -228,17 +634,46 @@ logical_or_expression
 	;
 
 conditional_expression
-	: logical_or_expression { TRACE_REDUCE("conditional_expression -> logical_or_expression"); }
+	: logical_or_expression {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("conditional_expression -> logical_or_expression");
+	}
 	;
 
 assignment_expression
-	: conditional_expression { TRACE_REDUCE("assignment_expression -> conditional_expression"); }
-	| unary_expression '=' assignment_expression { TRACE_REDUCE("assignment_expression -> unary_expression '=' assignment_expression"); }
+	: conditional_expression {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("assignment_expression -> conditional_expression");
+	}
+	| unary_expression '=' assignment_expression {
+		if ($1.type != $3.type) {
+			yyerror("Semantic Error: Type mismatch in assignment");
+		}
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		emit("=", $3.place, "", $1.place);
+		TRACE_REDUCE("assignment_expression -> unary_expression '=' assignment_expression");
+	}
 	;
 
 expression
-	: assignment_expression { TRACE_REDUCE("expression -> assignment_expression"); }
-	| expression ',' assignment_expression { TRACE_REDUCE("expression -> expression ',' assignment_expression"); }
+	: assignment_expression {
+		$$.type = $1.type;
+		strncpy($$.place, $1.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("expression -> assignment_expression");
+	}
+	| expression ',' assignment_expression {
+		$$.type = $3.type;
+		strncpy($$.place, $3.place, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		TRACE_REDUCE("expression -> expression ',' assignment_expression");
+	}
 	;
 
 constant_expression
@@ -263,8 +698,18 @@ init_declarator_list
 	;
 
 init_declarator
-	: declarator '=' initializer { TRACE_REDUCE("init_declarator -> declarator '=' initializer"); }
-	| declarator { TRACE_REDUCE("init_declarator -> declarator"); }
+	: declarator '=' initializer {
+		if (!insert_symbol($1.place, current_decl_type, yylineno)) {
+			yyerror("Semantic Error: Redeclaration of variable.");
+		}
+		TRACE_REDUCE("init_declarator -> declarator '=' initializer");
+	}
+	| declarator {
+		if (!insert_symbol($1.place, current_decl_type, yylineno)) {
+			yyerror("Semantic Error: Redeclaration of variable.");
+		}
+		TRACE_REDUCE("init_declarator -> declarator");
+	}
 	;
 
 storage_class_specifier
@@ -272,20 +717,26 @@ storage_class_specifier
 	;
 
 type_specifier
-	: VOID { TRACE_REDUCE("type_specifier -> VOID"); }
-	| CHAR { TRACE_REDUCE("type_specifier -> CHAR"); }
-	| SHORT { TRACE_REDUCE("type_specifier -> SHORT"); }
-	| INT { TRACE_REDUCE("type_specifier -> INT"); }
-	| LONG { TRACE_REDUCE("type_specifier -> LONG"); }
-	| FLOAT { TRACE_REDUCE("type_specifier -> FLOAT"); }
-	| DOUBLE { TRACE_REDUCE("type_specifier -> DOUBLE"); }
-	| struct_or_union_specifier { TRACE_REDUCE("type_specifier -> struct_or_union_specifier"); }
+	: VOID { current_decl_type = SYM_TYPE_VOID; TRACE_REDUCE("type_specifier -> VOID"); }
+	| CHAR { current_decl_type = SYM_TYPE_CHAR; TRACE_REDUCE("type_specifier -> CHAR"); }
+	| SHORT { current_decl_type = SYM_TYPE_SHORT; TRACE_REDUCE("type_specifier -> SHORT"); }
+	| INT { current_decl_type = SYM_TYPE_INT; TRACE_REDUCE("type_specifier -> INT"); }
+	| LONG { current_decl_type = SYM_TYPE_LONG; TRACE_REDUCE("type_specifier -> LONG"); }
+	| FLOAT { current_decl_type = SYM_TYPE_FLOAT; TRACE_REDUCE("type_specifier -> FLOAT"); }
+	| DOUBLE { current_decl_type = SYM_TYPE_DOUBLE; TRACE_REDUCE("type_specifier -> DOUBLE"); }
+	| struct_or_union_specifier { current_decl_type = SYM_TYPE_STRUCT; TRACE_REDUCE("type_specifier -> struct_or_union_specifier"); }
 	;
 
 struct_or_union_specifier
 	: STRUCT '{' struct_declaration_list '}' { TRACE_REDUCE("struct_or_union_specifier -> STRUCT '{' struct_declaration_list '}'"); }
-	| STRUCT IDENTIFIER '{' struct_declaration_list '}' { TRACE_REDUCE("struct_or_union_specifier -> STRUCT IDENTIFIER '{' struct_declaration_list '}'"); }
-	| STRUCT IDENTIFIER { TRACE_REDUCE("struct_or_union_specifier -> STRUCT IDENTIFIER"); }
+	| STRUCT IDENTIFIER '{' struct_declaration_list '}' {
+        free($2);
+        TRACE_REDUCE("struct_or_union_specifier -> STRUCT IDENTIFIER '{' struct_declaration_list '}'");
+    }
+	| STRUCT IDENTIFIER {
+        free($2);
+        TRACE_REDUCE("struct_or_union_specifier -> STRUCT IDENTIFIER");
+    }
 	;
 
 struct_declaration_list
@@ -315,19 +766,51 @@ struct_declarator
 	;
 
 declarator
-    : pointer direct_declarator { TRACE_REDUCE("declarator -> pointer direct_declarator"); }
-    | direct_declarator { TRACE_REDUCE("declarator -> direct_declarator"); }
+	: pointer direct_declarator {
+		strcpy($$.place, $2.place);
+		TRACE_REDUCE("declarator -> pointer direct_declarator");
+	}
+	| direct_declarator {
+		strcpy($$.place, $1.place);
+		TRACE_REDUCE("declarator -> direct_declarator");
+	}
     ;
 
 direct_declarator
-	: IDENTIFIER { TRACE_REDUCE("direct_declarator -> IDENTIFIER"); }
-	| '(' declarator ')' { TRACE_REDUCE("direct_declarator -> '(' declarator ')'"); }
-	| direct_declarator '[' ']' { TRACE_REDUCE("direct_declarator -> direct_declarator '[' ']'"); }
-	| direct_declarator '[' '*' ']' { TRACE_REDUCE("direct_declarator -> direct_declarator '[' '*' ']'"); }
-	| direct_declarator '[' assignment_expression ']' { TRACE_REDUCE("direct_declarator -> direct_declarator '[' assignment_expression ']'"); }
-	| direct_declarator '(' parameter_type_list ')' { TRACE_REDUCE("direct_declarator -> direct_declarator '(' parameter_type_list ')'"); }
-	| direct_declarator '(' ')' { TRACE_REDUCE("direct_declarator -> direct_declarator '(' ')'"); }
-	| direct_declarator '(' identifier_list ')' { TRACE_REDUCE("direct_declarator -> direct_declarator '(' identifier_list ')'"); }
+	: IDENTIFIER {
+		strncpy($$.place, $1, sizeof($$.place) - 1);
+		$$.place[sizeof($$.place) - 1] = '\0';
+		free($1);
+		TRACE_REDUCE("direct_declarator -> IDENTIFIER");
+	}
+	| '(' declarator ')' {
+		strcpy($$.place, $2.place);
+		TRACE_REDUCE("direct_declarator -> '(' declarator ')'");
+	}
+	| direct_declarator '[' ']' {
+		strcpy($$.place, $1.place);
+		TRACE_REDUCE("direct_declarator -> direct_declarator '[' ']'");
+	}
+	| direct_declarator '[' '*' ']' {
+		strcpy($$.place, $1.place);
+		TRACE_REDUCE("direct_declarator -> direct_declarator '[' '*' ']'");
+	}
+	| direct_declarator '[' assignment_expression ']' {
+		strcpy($$.place, $1.place);
+		TRACE_REDUCE("direct_declarator -> direct_declarator '[' assignment_expression ']'");
+	}
+	| direct_declarator '(' parameter_type_list ')' {
+		strcpy($$.place, $1.place);
+		TRACE_REDUCE("direct_declarator -> direct_declarator '(' parameter_type_list ')'");
+	}
+	| direct_declarator '(' ')' {
+		strcpy($$.place, $1.place);
+		TRACE_REDUCE("direct_declarator -> direct_declarator '(' ')'");
+	}
+	| direct_declarator '(' identifier_list ')' {
+		strcpy($$.place, $1.place);
+		TRACE_REDUCE("direct_declarator -> direct_declarator '(' identifier_list ')'");
+	}
 	;
 
 pointer
@@ -345,14 +828,25 @@ parameter_list
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator { TRACE_REDUCE("parameter_declaration -> declaration_specifiers declarator"); }
+	: declaration_specifiers declarator {
+        if (!insert_symbol($2.place, current_decl_type, yylineno)) {
+            yyerror("Semantic Error: Redeclaration of variable.");
+        }
+        TRACE_REDUCE("parameter_declaration -> declaration_specifiers declarator");
+    }
 	| declaration_specifiers abstract_declarator { TRACE_REDUCE("parameter_declaration -> declaration_specifiers abstract_declarator"); }
 	| declaration_specifiers { TRACE_REDUCE("parameter_declaration -> declaration_specifiers"); }
 	;
 
 identifier_list
-	: IDENTIFIER { TRACE_REDUCE("identifier_list -> IDENTIFIER"); }
-	| identifier_list ',' IDENTIFIER { TRACE_REDUCE("identifier_list -> identifier_list ',' IDENTIFIER"); }
+	: IDENTIFIER {
+		free($1);
+		TRACE_REDUCE("identifier_list -> IDENTIFIER");
+	}
+	| identifier_list ',' IDENTIFIER {
+		free($3);
+		TRACE_REDUCE("identifier_list -> identifier_list ',' IDENTIFIER");
+	}
 	;
 
 type_name
@@ -404,7 +898,10 @@ designator_list
 
 designator
 	: '[' constant_expression ']' { TRACE_REDUCE("designator -> '[' constant_expression ']'"); }
-	| '.' IDENTIFIER { TRACE_REDUCE("designator -> '.' IDENTIFIER"); }
+	| '.' IDENTIFIER {
+        free($2);
+        TRACE_REDUCE("designator -> '.' IDENTIFIER");
+    }
 	;
 
 statement
@@ -417,14 +914,24 @@ statement
 	;
 
 labeled_statement
-	: IDENTIFIER ':' statement { TRACE_REDUCE("labeled_statement -> IDENTIFIER ':' statement"); }
+	: IDENTIFIER ':' statement {
+        free($1);
+        TRACE_REDUCE("labeled_statement -> IDENTIFIER ':' statement");
+    }
 	| CASE constant_expression ':' statement { TRACE_REDUCE("labeled_statement -> CASE constant_expression ':' statement"); }
 	| DEFAULT ':' statement { TRACE_REDUCE("labeled_statement -> DEFAULT ':' statement"); }
 	;
 
 compound_statement
-	: '{' '}' { TRACE_REDUCE("compound_statement -> '{' '}'"); }
-	| '{'  block_item_list '}' { TRACE_REDUCE("compound_statement -> '{'  block_item_list '}'"); }
+	: '{' { enter_scope(); } block_item_list_opt '}' {
+        exit_scope();
+        TRACE_REDUCE("compound_statement -> '{' block_item_list_opt '}'");
+    }
+	;
+
+block_item_list_opt
+	: /* empty */ { TRACE_REDUCE("block_item_list_opt -> epsilon"); }
+	| block_item_list { TRACE_REDUCE("block_item_list_opt -> block_item_list"); }
 	;
 
 block_item_list
@@ -443,10 +950,16 @@ expression_statement
 	;
 
 selection_statement
-    : IF '(' expression ')' statement ELSE statement 
-        { 
-            TRACE_REDUCE("selection_statement -> IF '(' expression ')' statement ELSE statement"); 
-        }
+	: if_head statement ELSE
+		{
+			emit("goto", "", "", $1.next_label);
+			emit("label", "", "", $1.false_label);
+		}
+	  statement
+		{
+			emit("label", "", "", $1.next_label);
+			TRACE_REDUCE("selection_statement -> IF ... ELSE ...");
+		}
     | if_without_else 
         { 
             TRACE_REDUCE("selection_statement -> if_without_else"); 
@@ -458,15 +971,68 @@ selection_statement
     ;
 
 if_without_else
-    : IF '(' expression ')' statement %prec LOWER_THAN_ELSE 
+	: if_head statement %prec LOWER_THAN_ELSE
         {
+			emit("label", "", "", $1.false_label);
             TRACE_REDUCE("if_without_else -> IF '(' expression ')' statement"); 
         }
     ;
 
+if_head
+	: IF '(' expression ')'
+		{
+			char* false_lbl = newlabel();
+			char* next_lbl = newlabel();
+			strncpy($$.false_label, false_lbl, sizeof($$.false_label) - 1);
+			$$.false_label[sizeof($$.false_label) - 1] = '\0';
+			strncpy($$.next_label, next_lbl, sizeof($$.next_label) - 1);
+			$$.next_label[sizeof($$.next_label) - 1] = '\0';
+			free(false_lbl);
+			free(next_lbl);
+			emit("ifFalse", $3.place, "goto", $$.false_label);
+		}
+	;
+
 iteration_statement
-	: WHILE '(' expression ')' statement { TRACE_REDUCE("iteration_statement -> WHILE '(' expression ')' statement"); }
-	| DO statement WHILE '(' expression ')' ';' { TRACE_REDUCE("iteration_statement -> DO statement WHILE '(' expression ')' ';'"); }
+	: WHILE
+		{
+			char* start_lbl = newlabel();
+			strncpy($<attr>$.next_label, start_lbl, sizeof($<attr>$.next_label) - 1);
+			$<attr>$.next_label[sizeof($<attr>$.next_label) - 1] = '\0';
+			free(start_lbl);
+			emit("label", "", "", $<attr>$.next_label);
+		}
+	  '(' expression ')'
+		{
+			char* exit_lbl = newlabel();
+			strncpy($<attr>$.false_label, exit_lbl, sizeof($<attr>$.false_label) - 1);
+			$<attr>$.false_label[sizeof($<attr>$.false_label) - 1] = '\0';
+			free(exit_lbl);
+			emit("ifFalse", $4.place, "goto", $<attr>$.false_label);
+		}
+	  statement
+		{
+			emit("goto", "", "", $<attr>2.next_label);
+			emit("label", "", "", $<attr>6.false_label);
+			TRACE_REDUCE("iteration_statement -> WHILE '(' expression ')' statement");
+		}
+	| DO
+		{
+			char* start_lbl = newlabel();
+			strncpy($<attr>$.next_label, start_lbl, sizeof($<attr>$.next_label) - 1);
+			$<attr>$.next_label[sizeof($<attr>$.next_label) - 1] = '\0';
+			free(start_lbl);
+			emit("label", "", "", $<attr>$.next_label);
+		}
+	  statement WHILE '(' expression ')' ';'
+		{
+			char* exit_lbl = newlabel();
+			emit("ifFalse", $6.place, "goto", exit_lbl);
+			emit("goto", "", "", $<attr>2.next_label);
+			emit("label", "", "", exit_lbl);
+			free(exit_lbl);
+			TRACE_REDUCE("iteration_statement -> DO statement WHILE '(' expression ')' ';'");
+		}
 	| FOR '(' expression_statement expression_statement ')' statement { TRACE_REDUCE("iteration_statement -> FOR '(' expression_statement expression_statement ')' statement"); }
 	| FOR '(' expression_statement expression_statement expression ')' statement { TRACE_REDUCE("iteration_statement -> FOR '(' expression_statement expression_statement expression ')' statement"); }
 	| FOR '(' declaration expression_statement ')' statement { TRACE_REDUCE("iteration_statement -> FOR '(' declaration expression_statement ')' statement"); }
@@ -628,6 +1194,9 @@ int main(int argc, char **argv)
 	}
 	else
 	{
+		symtab_init();
+		enter_scope();
+
 		do
 		{
 			int parse_result = yyparse();
@@ -742,6 +1311,11 @@ int main(int argc, char **argv)
 			}
 		}
 		while(!feof(yyin));
+
+		exit_scope();
+		print_quadruples();
+		symtab_print();
+		symtab_destroy();
 	}
 
 	printf("***parsing successful***\n");
